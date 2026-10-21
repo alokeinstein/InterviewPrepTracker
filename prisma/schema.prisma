@@ -1,0 +1,488 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum ItemType {
+  DSA_PROBLEM
+  CONCEPT
+  MISTAKE_INVARIANT
+}
+
+enum SubmissionStatus {
+  ACCEPTED
+  WRONG_ANSWER
+  TIME_LIMIT_EXCEEDED
+  RUNTIME_ERROR
+  COMPILE_ERROR
+}
+
+enum RelationType {
+  PREREQUISITE
+  RELATED_TO
+  CONTRASTS_WITH
+  BUILDS_UPON
+}
+
+enum ExecutionModel {
+  FUNCTION
+  STDIN_STDOUT
+}
+
+enum InterviewType {
+  DSA_CODING
+  SYSTEM_DESIGN
+}
+
+enum SessionStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id                   String                 @id @default(uuid())
+  email                String                 @unique
+  name                 String
+  role                 Role                   @default(USER)
+  streak               Int                    @default(0)
+  longestStreak        Int                    @default(0)
+  totalStudyMinutes    Int                    @default(0)
+  dsaReadiness         Float                  @default(0.0)
+  sysDesignReadiness   Float                  @default(0.0)
+  overallReadiness     Float                  @default(0.0)
+  lastActiveAt         DateTime?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  conceptMasteries     ConceptMastery[]
+  submissions          DsaSubmission[]
+  mistakes             MistakeEntry[]
+  revisions            RevisionItem[]
+  architectureDesigns  ArchitectureDesign[]
+  mockInterviews       MockInterview[]
+  dailyPlans           DailyPlan[]
+  focusSessions        FocusSession[]
+  patternWeaknesses    PatternWeakness[]
+  sectionProgress      SectionProgress[]
+
+  @@index([email])
+}
+
+model BookPart {
+  id          String    @id @default(uuid())
+  partNumber  Int       @unique
+  title       String
+  description String?
+  chapters    Chapter[]
+}
+
+model Chapter {
+  id                 String     @id @default(uuid())
+  partId             String
+  part               BookPart   @relation(fields: [partId], references: [id], onDelete: Cascade)
+  chapterNumber      Int        @unique
+  title              String
+  sourcePages        String
+  summary            String     @db.Text
+  learningObjectives String[]
+  mindMap            Json?
+  cheatSheet         Json?
+  sections           Section[]
+  concepts           Concept[]
+
+  @@index([partId])
+  @@index([chapterNumber])
+}
+
+model Section {
+  id                String            @id @default(uuid())
+  chapterId         String
+  chapter           Chapter           @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  sectionNumber     String
+  title             String
+  pageStart         Int?
+  pageEnd           Int?
+  content           String?           @db.Text
+  simpleExplanation String?           @db.Text
+  analogy           String?           @db.Text
+  keyQuestions      Json              @default("[]")
+  concepts          Concept[]
+  progress          SectionProgress[]
+
+  @@index([chapterId])
+}
+
+model SectionProgress {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sectionId   String
+  section     Section   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  notes       String?   @db.Text
+
+  @@unique([userId, sectionId])
+  @@index([userId])
+}
+
+model Concept {
+  id               String            @id @default(uuid())
+  chapterId        String
+  chapter          Chapter           @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  sectionId        String?
+  section          Section?          @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  name             String
+  slug             String            @unique
+  summary          String            @db.Text
+  whyItMatters     String            @db.Text
+  coreMechanics    String            @db.Text
+  visualType       String?
+  scenarioProblem  String?           @db.Text
+  interviewPrompt  String?           @db.Text
+  tradeoffs        String[]
+  technologies     String[]
+  sourceRef        String
+  
+  relationsFrom    ConceptRelation[] @relation("FromConcept")
+  relationsTo      ConceptRelation[] @relation("ToConcept")
+  masteries        ConceptMastery[]
+  revisionItems    RevisionItem[]
+
+  @@index([chapterId])
+  @@index([slug])
+}
+
+model ConceptRelation {
+  id            String       @id @default(uuid())
+  fromConceptId String
+  fromConcept   Concept      @relation("FromConcept", fields: [fromConceptId], references: [id], onDelete: Cascade)
+  toConceptId   String
+  toConcept     Concept      @relation("ToConcept", fields: [toConceptId], references: [id], onDelete: Cascade)
+  relationType  RelationType
+  note          String?
+
+  @@unique([fromConceptId, toConceptId, relationType])
+  @@index([fromConceptId])
+  @@index([toConceptId])
+}
+
+model ConceptMastery {
+  id                       String   @id @default(uuid())
+  userId                   String
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conceptId                String
+  concept                  Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  recognitionScore         Float    @default(0.0)
+  understandingScore       Float    @default(0.0)
+  recallScore              Float    @default(0.0)
+  applicationScore         Float    @default(0.0)
+  interviewExplanationScore Float   @default(0.0)
+  overallScore             Float    @default(0.0)
+  lastStudiedAt            DateTime?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@unique([userId, conceptId])
+  @@index([userId, overallScore])
+}
+
+model DsaPattern {
+  id          String            @id @default(uuid())
+  name        String            @unique
+  slug        String            @unique
+  description String            @db.Text
+  category    String
+  levelRange  String
+  problems    DsaProblem[]
+  weaknesses  PatternWeakness[]
+}
+
+model DsaProblem {
+  id                     String           @id @default(uuid())
+  leetcodeId             Int?             @unique
+  title                  String
+  slug                   String           @unique
+  level                  Int
+  difficulty             Difficulty
+  patternId              String?
+  pattern                DsaPattern?      @relation(fields: [patternId], references: [id], onDelete: SetNull)
+  topic                  String
+  subtopic               String?
+  estimatedTimeMin       Int              @default(25)
+  statement              String           @db.Text
+  executionModel         ExecutionModel   @default(FUNCTION)
+  functionName           String           @default("solve")
+  parameterDefinitions   Json             @default("[]")
+  returnType             String           @default("any")
+  inputFormat            String?          @db.Text
+  outputFormat           String?          @db.Text
+  constraints            String[]
+  examples               Json             @default("[]")
+  starterTemplates       Json             @default("{}")
+  optimalSolution        String?          @db.Text
+  optimalTimeComplexity  String?
+  optimalSpaceComplexity String?
+  optimalRuntimeMs       Float            @default(45.0)
+  maxAllowedRuntimeMs    Float            @default(1000.0)
+  commonMistakes         String[]
+  hints                  String[]
+  detailedHints          Json?            @default("{}")
+
+  testCases              TestCase[]
+  submissions            DsaSubmission[]
+  mistakes               MistakeEntry[]
+  revisionItems          RevisionItem[]
+
+  @@index([level])
+  @@index([difficulty])
+  @@index([topic])
+  @@index([patternId])
+}
+
+model TestCase {
+  id             String     @id @default(uuid())
+  problemId      String
+  problem        DsaProblem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  input          String     @db.Text
+  expectedOutput String     @db.Text
+  isHidden       Boolean    @default(false)
+  explanation    String?    @db.Text
+  tier           String     @default("FUNCTIONAL")
+  scaleN         Int?
+
+  @@index([problemId])
+}
+
+model DsaSubmission {
+  id                   String           @id @default(uuid())
+  userId               String
+  user                 User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId            String
+  problem              DsaProblem       @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  code                 String           @db.Text
+  language             String
+  status               SubmissionStatus
+  runtimeMs            Int              @default(0)
+  memoryKb             Int              @default(0)
+  optimalityScore      Float            @default(0.0)
+  efficiencyFeedback   String?          @db.Text
+  testCasesPassed      Int              @default(0)
+  totalTestCases       Int              @default(0)
+  hintCountUsed        Int              @default(0)
+  failedTestCase       String?          @db.Text
+  userConfidenceBefore Int?
+  userConfidenceAfter  Int?
+  createdAt            DateTime         @default(now())
+
+  @@index([userId, problemId])
+  @@index([userId, status])
+  @@index([createdAt])
+}
+
+model MistakeEntry {
+  id                 String       @id @default(uuid())
+  userId             String
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId          String
+  problem            DsaProblem   @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  category           String
+  violatedInvariant  String       @db.Text
+  userNotes          String?      @db.Text
+  correctiveAction   String?      @db.Text
+  severity           Severity     @default(MEDIUM)
+  reviewCount        Int          @default(0)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  revisionItems      RevisionItem[]
+
+  @@index([userId, category])
+  @@index([userId, problemId])
+}
+
+model RevisionItem {
+  id               String            @id @default(uuid())
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemType         ItemType
+  dsaProblemId     String?
+  dsaProblem       DsaProblem?       @relation(fields: [dsaProblemId], references: [id], onDelete: Cascade)
+  conceptId        String?
+  concept          Concept?          @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  mistakeId        String?
+  mistake          MistakeEntry?     @relation(fields: [mistakeId], references: [id], onDelete: Cascade)
+  repetitionNumber Int               @default(0)
+  intervalDays     Int               @default(1)
+  easeFactor       Float             @default(2.5)
+  nextReviewDate   DateTime
+  lastReviewDate   DateTime?
+  stabilityScore   Float             @default(0.0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  attempts         RevisionAttempt[]
+
+  @@index([userId, nextReviewDate, itemType])
+  @@index([userId, itemType])
+}
+
+model RevisionAttempt {
+  id                 String       @id @default(uuid())
+  revisionItemId     String
+  revisionItem       RevisionItem @relation(fields: [revisionItemId], references: [id], onDelete: Cascade)
+  qualityScore       Int
+  recalledInvariants Boolean      @default(false)
+  durationSec        Int          @default(0)
+  createdAt          DateTime     @default(now())
+
+  @@index([revisionItemId])
+}
+
+model ArchitectureDesign {
+  id          String                @id @default(uuid())
+  userId      String
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  problemType String
+  description String?               @db.Text
+  versions    ArchitectureVersion[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([userId])
+}
+
+model ArchitectureVersion {
+  id                   String             @id @default(uuid())
+  designId             String
+  design               ArchitectureDesign @relation(fields: [designId], references: [id], onDelete: Cascade)
+  versionNumber        Int
+  title                String
+  nodes                Json               @default("[]")
+  edges                Json               @default("[]")
+  aiReviewSummary      String?            @db.Text
+  scalabilityScore     Float?
+  spofsDetected        String[]
+  bottleneckNotes      String?            @db.Text
+  latencyTradeoffs     String?            @db.Text
+  createdAt            DateTime           @default(now())
+
+  @@unique([designId, versionNumber])
+  @@index([designId])
+}
+
+model MockInterview {
+  id              String                @id @default(uuid())
+  userId          String
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interviewType   InterviewType
+  title           String
+  durationMinutes Int                   @default(45)
+  problemId       String?
+  conceptId       String?
+  status          SessionStatus         @default(IN_PROGRESS)
+  messages        InterviewMessage[]
+  evaluation      InterviewEvaluation?
+  startedAt       DateTime              @default(now())
+  completedAt     DateTime?
+
+  @@index([userId, interviewType])
+}
+
+model InterviewMessage {
+  id                String        @id @default(uuid())
+  mockInterviewId   String
+  mockInterview     MockInterview @relation(fields: [mockInterviewId], references: [id], onDelete: Cascade)
+  sender            String
+  content           String        @db.Text
+  timestamp         DateTime      @default(now())
+  rubricCheckpoint  String?
+
+  @@index([mockInterviewId])
+}
+
+model InterviewEvaluation {
+  id                        String        @id @default(uuid())
+  mockInterviewId           String        @unique
+  mockInterview             MockInterview @relation(fields: [mockInterviewId], references: [id], onDelete: Cascade)
+  problemSolvingScore       Float
+  communicationScore        Float
+  complexityScore           Float
+  edgeCaseScore             Float
+  implementationScore       Float
+  overallScore              Float
+  keyStrengths              String[]
+  criticalFlaws             String[]
+  actionableRecommendations String[]
+  createdAt                 DateTime      @default(now())
+}
+
+model DailyPlan {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date             DateTime @db.Date
+  targetMinutes    Int      @default(30)
+  priorityActions  Json     @default("[]")
+  isCompleted      Boolean  @default(false)
+  totalTimeSpentSec Int     @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model FocusSession {
+  id                   String    @id @default(uuid())
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  objective            String
+  targetDurationMinutes Int      @default(25)
+  elapsedSeconds       Int       @default(0)
+  isCompleted          Boolean   @default(false)
+  interruptionsCount   Int       @default(0)
+  completedAt          DateTime?
+  createdAt            DateTime  @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model PatternWeakness {
+  id               String     @id @default(uuid())
+  userId           String
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patternId        String
+  pattern          DsaPattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+  successRate      Float      @default(1.0)
+  attemptsCount    Int        @default(0)
+  isFlaggedWeak    Boolean    @default(false)
+  recommendedDrill String?
+  updatedAt        DateTime   @updatedAt
+
+  @@unique([userId, patternId])
+  @@index([userId, isFlaggedWeak])
+}
