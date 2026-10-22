@@ -1544,8 +1544,8 @@ export function getLevel21Payload(): LevelPayload {
       optimalSolution: `function maxDistance(position, m) {\n  position.sort((a, b) => a - b);\n  let low = 1, high = position[position.length - 1] - position[0], ans = 1;\n  function canPlace(d) {\n    let count = 1, last = position[0];\n    for (let i = 1; i < position.length; i++) {\n      if (position[i] - last >= d) {\n        count++;\n        last = position[i];\n        if (count >= m) return true;\n      }\n    }\n    return false;\n  }\n  while (low <= high) {\n    const mid = Math.floor((low + high) / 2);\n    if (canPlace(mid)) {\n      ans = mid;\n      low = mid + 1;\n    } else {\n      high = mid - 1;\n    }\n  }\n  return ans;\n}`,
       optimalTimeComplexity: "O(N log(max_pos) + N log N)",
       optimalSpaceComplexity: "O(1)",
-      suboptimalSolution: `function maxDistance(position, m) {\n  position.sort((a, b) => a - b);\n  let low = 1, high = position[position.length - 1] - position[0];\n  let best = 1;\n  for (let d = low; d <= high; d++) {\n    let count = 1, last = position[0];\n    for (let i = 1; i < position.length; i++) {\n      if (position[i] - last >= d) { count++; last = position[i]; }\n    }\n    if (count >= m) best = d;\n    else break;\n  }\n  return best;\n}`,
-      suboptimalTimeComplexity: "O(N * max_pos)",
+      suboptimalSolution: `function maxDistance(position, m) {\n  position.sort((a, b) => a - b);\n  let low = 1, high = position[position.length - 1] - position[0];\n  let best = 1;\n  while (low <= high) {\n    const d = Math.floor(low + (high - low) / 2);\n    let count = 1, last = position[0];\n    for (let i = 1; i < position.length; i++) {\n      if (position[i] - last >= d) { count++; last = position[i]; }\n    }\n    if (count >= m) {\n      best = d;\n      low = d + 1;\n    } else {\n      high = d - 1;\n    }\n  }\n  return best;\n}`,
+      suboptimalTimeComplexity: "O(N log(max_pos) + N log N)",
       suboptimalSpaceComplexity: "O(1)",
       commonMistakes: ["Trying linear search on distance (which times out since positions reach 10^9) instead of binary search."],
       hints: [

@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getRequestAuth } from '@/lib/auth';
 import { Severity, ItemType } from '@prisma/client';
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await getRequestAuth(req);
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Authentication required to record mistakes.' },
+        { status: 401, headers: { 'Cache-Control': 'private, no-store' } }
+      );
+    }
+    const user = auth.user;
+
     const { problemId, category, violatedInvariant, userNotes, correctiveAction, severity } =
       await req.json();
 
-    const user = await prisma.user.findFirst();
-    if (!user || !problemId) {
-      return NextResponse.json({ error: 'User or problemId missing' }, { status: 400 });
+    if (!problemId) {
+      return NextResponse.json({ error: 'problemId missing' }, { status: 400 });
     }
 
     const mistake = await prisma.mistakeEntry.create({

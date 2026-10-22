@@ -1,23 +1,106 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
+import { getServerAuth } from '@/lib/auth';
 import { MasteryService } from '@/services/learning/masteryService';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import { ProgressBar } from '@/components/ui/ProgressBar';
-import { ShieldCheck, AlertTriangle, TrendingUp, Target, CheckCircle2, ArrowRight } from 'lucide-react';
+import { PracticeService } from '@/services/practice/practiceService';
 import Link from 'next/link';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { ContributionHeatmap } from '@/components/analytics/ContributionHeatmap';
+import { MonthlyActivityChart } from '@/components/analytics/MonthlyActivityChart';
+import { ProblemsOverviewCard } from '@/components/analytics/ProblemsOverviewCard';
+import { ActivityHistoryList } from '@/components/analytics/ActivityHistoryList';
+import { AlertTriangle, Activity } from 'lucide-react';
 
 export const revalidate = 0;
 
 export default async function AnalyticsPage() {
-  const user = await prisma.user.findFirst();
-  const userId = user?.id || 'user-default-1';
+  const auth = await getServerAuth();
+  if (!auth?.user) {
+    return (
+      <div className="max-w-4xl mx-auto py-16 px-4 text-center space-y-6">
+        <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto text-primary">
+          <Activity className="h-8 w-8" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Developer Practice Analytics
+          </h1>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+            Sign in to access your activity heatmap, midnight streak calculation, one-row-per-question practice history, and algorithmic readiness index.
+          </p>
+        </div>
+        <div>
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-xs shadow-md hover:bg-primary/90 transition"
+          >
+            Sign In with Google / Gmail
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-  const readiness = await MasteryService.getReadinessReport(userId);
+  const user = auth.user;
+  const userId = user.id;
+  const timezone = user.timezone || 'UTC';
+
+  const currentYear = new Date().getFullYear();
+
+  const [
+    readiness,
+    allProblems,
+    masteredCount,
+    streakResult,
+    activityData,
+    historyResponse,
+    solvedSessions,
+  ] = await Promise.all([
+    MasteryService.getReadinessReport(userId),
+    prisma.dsaProblem.findMany({
+      select: { id: true, difficulty: true },
+    }),
+    prisma.revisionItem.count({
+      where: {
+        userId,
+        repetitionNumber: { gte: 5 },
+        intervalDays: { gte: 14 },
+      },
+    }),
+    PracticeService.refreshUserStreak(userId, timezone),
+    PracticeService.getYearActivityMap(userId, currentYear),
+    PracticeService.getLatestActivityHistory({ userId, page: 1, pageSize: 15 }),
+    prisma.practiceSession.findMany({
+      where: {
+        userId,
+        solved: true,
+      },
+      select: { problemId: true },
+      distinct: ['problemId'],
+    }),
+  ]);
+
+  // Aggregate distinct solved problems by difficulty
+  const uniqueSolvedProblemIds = new Set(solvedSessions.map((s) => s.problemId));
+  const problemMap = new Map(allProblems.map((p) => [p.id, p.difficulty]));
+
+  let easySolved = 0;
+  let mediumSolved = 0;
+  let hardSolved = 0;
+
+  uniqueSolvedProblemIds.forEach((pId) => {
+    const diff = problemMap.get(pId);
+    if (diff === 'EASY') easySolved++;
+    else if (diff === 'MEDIUM') mediumSolved++;
+    else if (diff === 'HARD') hardSolved++;
+  });
+
+  const totalSolved = uniqueSolvedProblemIds.size;
+  const codingScore = totalSolved * 2 + Math.round(readiness.overallScore);
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
+    <div className="space-y-8 max-w-6xl mx-auto pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
         <div>
@@ -26,113 +109,73 @@ export default async function AnalyticsPage() {
               EVIDENCE-BASED METRICS
             </Badge>
             <Badge variant="secondary" className="font-mono text-xs">
-              No Fake Precision
+              Verified Submission Telemetry
             </Badge>
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-            Interview Readiness & Analytics
+            Interview Readiness &amp; Analytics
           </h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-            Calculated from verifiable submission outcomes, active recall retention, Socratic question accuracy,
-            and mock interview evaluations.
+            Real performance tracking from verified test suite executions, stopwatch solve durations,
+            and SM-2 multi-modal revision sessions.
           </p>
         </div>
       </div>
 
-      {/* Hero Readiness Gauge */}
-      <Card className="border-2 border-primary/40 bg-gradient-to-br from-primary/10 via-card to-card p-6 md:p-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <span className="text-xs font-mono font-bold uppercase text-primary">
-              Composite Readiness Score
-            </span>
-            <div className="flex items-baseline gap-3">
-              <span className="text-5xl font-black font-mono text-foreground">{readiness.overallScore}%</span>
-              <Badge variant="success" className="font-mono text-xs">
-                Google L5 / MSFT L6 Benchmark
-              </Badge>
-            </div>
-            <p className="text-xs text-muted-foreground max-w-md">
-              Target benchmark for Senior Software Engineer interviews is &gt;80% composite readiness with no
-              pattern under 50%.
-            </p>
-          </div>
+      {/* 1. Problems Overview Card & Stats */}
+      <ProblemsOverviewCard
+        totalSolved={totalSolved}
+        easySolved={easySolved}
+        mediumSolved={mediumSolved}
+        hardSolved={hardSolved}
+        codingScore={codingScore}
+        streak={streakResult.currentStreak}
+        masteredCount={masteredCount}
+      />
 
-          <div className="grid grid-cols-2 gap-3 min-w-[280px]">
-            <div className="p-3 rounded-xl bg-background border border-border">
-              <p className="text-[10px] text-muted-foreground font-mono">DSA Mastery</p>
-              <p className="font-bold text-lg font-mono text-foreground">{readiness.dsaMastery}%</p>
+      {/* 2. Yearly Contribution Heatmap (Server-derived unique sessions) */}
+      <ContributionHeatmap
+        activityData={activityData}
+        currentYear={currentYear}
+      />
+
+      {/* 3. Monthly Activity Bar Chart (Unique sessions count per day) */}
+      <MonthlyActivityChart
+        activityData={activityData}
+      />
+
+      {/* 4. Chronological Activity History List (One row per unique problem, latest attempt at top) */}
+      <ActivityHistoryList
+        initialActivities={historyResponse.items}
+        initialTotal={historyResponse.total}
+      />
+
+      {/* 5. Priority Algorithmic Weaknesses */}
+      <Card className="p-6 space-y-4 bg-card/60 border border-border/80">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-sm text-foreground flex items-center gap-2 uppercase tracking-tight">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <span>Priority Weakness Areas</span>
+          </h3>
+          <Badge variant="warning" className="text-[10px] font-mono">
+            Remediation Queue
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {readiness.weakestPatterns.map((w) => (
+            <div key={w.name} className="p-3 rounded-lg border border-border/60 bg-background/50 space-y-1">
+              <div className="flex justify-between text-xs font-semibold text-foreground">
+                <span>{w.name}</span>
+                <span className="font-mono text-amber-500">{w.score}% Mastery</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Priority algorithmic pattern needing active recall practice.
+              </p>
             </div>
-            <div className="p-3 rounded-xl bg-background border border-border">
-              <p className="text-[10px] text-muted-foreground font-mono">System Design</p>
-              <p className="font-bold text-lg font-mono text-foreground">{readiness.systemDesignMastery}%</p>
-            </div>
-            <div className="p-3 rounded-xl bg-background border border-border">
-              <p className="text-[10px] text-muted-foreground font-mono">Retention Index</p>
-              <p className="font-bold text-lg font-mono text-foreground">{readiness.retentionScore}%</p>
-            </div>
-            <div className="p-3 rounded-xl bg-background border border-border">
-              <p className="text-[10px] text-muted-foreground font-mono">Mock Rubric</p>
-              <p className="font-bold text-lg font-mono text-foreground">{readiness.mockInterviewScore}%</p>
-            </div>
-          </div>
+          ))}
         </div>
       </Card>
-
-      {/* Weakness Detection & Remediation */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Algorithmic Weaknesses */}
-        <Card className="p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
-              <span>Priority Weakness Areas</span>
-            </h3>
-            <Badge variant="warning" className="text-[10px] font-mono">Needs Remediation</Badge>
-          </div>
-
-          <div className="space-y-3">
-            {readiness.weakestPatterns.map((w) => (
-              <div key={w.name} className="space-y-1">
-                <div className="flex justify-between text-xs font-medium">
-                  <span>{w.name}</span>
-                  <span className="font-mono text-amber-500">{w.score}% Mastery</span>
-                </div>
-                <ProgressBar value={w.score} color="warning" />
-              </div>
-            ))}
-          </div>
-
-          <div className="pt-2">
-            <Link href="/dsa?level=17">
-              <Button variant="outline" size="sm" className="w-full text-xs gap-1.5 border-amber-500/30 text-amber-500 hover:bg-amber-500/10">
-                <span>Start Remediation Drill</span>
-                <ArrowRight className="h-3 w-3" />
-              </Button>
-            </Link>
-          </div>
-        </Card>
-
-        {/* Actionable Recommendations */}
-        <Card className="p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-              <Target className="h-4 w-4 text-primary" />
-              <span>Actionable Next Steps</span>
-            </h3>
-            <Badge variant="outline" className="text-[10px] font-mono">AI Curated</Badge>
-          </div>
-
-          <div className="space-y-2.5">
-            {readiness.actionableRecommendations.map((rec, i) => (
-              <div key={i} className="flex gap-2.5 p-3 rounded-lg bg-muted/40 border border-border text-xs leading-relaxed">
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <span className="text-foreground/90">{rec}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
     </div>
   );
 }

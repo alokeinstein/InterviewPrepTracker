@@ -1609,14 +1609,14 @@ export function getLevel22Payload(): LevelPayload {
       returnType: "number[][]",
       constraints: ["1 <= words.length <= 5000", "0 <= words[i].length <= 300", "words[i] consists of lowercase English letters."],
       examples: [
-        { input: "words = [\"abcd\",\"dcba\",\"lls\",\"s\",\"sssll\"]", output: "[[0,1],[1,0],[3,2],[2,4]]", explanation: "The palindromes are [\"abcddcba\",\"dcbaabcd\",\"slls\",\"llssssll\"]." },
+        { input: "words = [\"abcd\",\"dcba\",\"lls\",\"s\",\"sssll\"]", output: "[[0,1],[1,0],[2,4],[3,2]]", explanation: "The palindromes are [\"abcddcba\",\"dcbaabcd\",\"llssssll\",\"slls\"]." },
         { input: "words = [\"bat\",\"tab\",\"cat\"]", output: "[[0,1],[1,0]]", explanation: "The palindromes are [\"battab\",\"tabbat\"]." },
         { input: "words = [\"a\",\"\"]", output: "[[0,1],[1,0]]", explanation: "Empty string paired with any palindrome string forms a palindrome." }
       ],
-      optimalSolution: `function palindromePairs(words) {\n  const isPal = (s, l, r) => {\n    while (l < r) {\n      if (s[l++] !== s[r--]) return false;\n    }\n    return true;\n  };\n  const wordMap = new Map();\n  for (let i = 0; i < words.length; i++) wordMap.set(words[i], i);\n  const res = [];\n  for (let i = 0; i < words.length; i++) {\n    const w = words[i];\n    const m = w.length;\n    for (let j = 0; j <= m; j++) {\n      if (isPal(w, j, m - 1)) {\n        const revPrefix = w.substring(0, j).split('').reverse().join('');\n        const k = wordMap.get(revPrefix);\n        if (k !== undefined && k !== i) res.push([i, k]);\n      }\n      if (j > 0 && isPal(w, 0, j - 1)) {\n        const revSuffix = w.substring(j).split('').reverse().join('');\n        const k = wordMap.get(revSuffix);\n        if (k !== undefined && k !== i) res.push([k, i]);\n      }\n    }\n  }\n  return res;\n}`,
+      optimalSolution: `function palindromePairs(words) {\n  const isPal = (s, l, r) => {\n    while (l < r) {\n      if (s[l++] !== s[r--]) return false;\n    }\n    return true;\n  };\n  const wordMap = new Map();\n  for (let i = 0; i < words.length; i++) wordMap.set(words[i], i);\n  const res = [];\n  for (let i = 0; i < words.length; i++) {\n    const w = words[i];\n    const m = w.length;\n    for (let j = 0; j <= m; j++) {\n      if (isPal(w, j, m - 1)) {\n        const revPrefix = w.substring(0, j).split('').reverse().join('');\n        const k = wordMap.get(revPrefix);\n        if (k !== undefined && k !== i) res.push([i, k]);\n      }\n      if (j > 0 && isPal(w, 0, j - 1)) {\n        const revSuffix = w.substring(j).split('').reverse().join('');\n        const k = wordMap.get(revSuffix);\n        if (k !== undefined && k !== i) res.push([k, i]);\n      }\n    }\n  }\n  return res.sort((a, b) => a[0] - b[0] || a[1] - b[1]);\n}`,
       optimalTimeComplexity: "O(N * L^2) where N is words count, L is maximum word length",
       optimalSpaceComplexity: "O(N * L)",
-      suboptimalSolution: `function palindromePairs(words) {\n  const res = [];\n  const isPal = (s) => {\n    let l = 0, r = s.length - 1;\n    while (l < r) if (s[l++] !== s[r--]) return false;\n    return true;\n  };\n  for (let i = 0; i < words.length; i++) {\n    for (let j = 0; j < words.length; j++) {\n      if (i !== j && isPal(words[i] + words[j])) res.push([i, j]);\n    }\n  }\n  return res;\n}`,
+      suboptimalSolution: `function palindromePairs(words) {\n  const res = [];\n  const isPal = (s) => {\n    let l = 0, r = s.length - 1;\n    while (l < r) if (s[l++] !== s[r--]) return false;\n    return true;\n  };\n  for (let i = 0; i < words.length; i++) {\n    for (let j = 0; j < words.length; j++) {\n      if (i !== j && isPal(words[i] + words[j])) res.push([i, j]);\n    }\n  }\n  return res.sort((a, b) => a[0] - b[0] || a[1] - b[1]);\n}`,
       suboptimalTimeComplexity: "O(N^2 * L)",
       suboptimalSpaceComplexity: "O(1)",
       commonMistakes: [
@@ -1655,7 +1655,7 @@ export function getLevel22Payload(): LevelPayload {
             }
           }
         }
-        return res;
+        return res.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
       },
       testCases: {
         functional: [
@@ -1704,8 +1704,8 @@ export function getLevel22Payload(): LevelPayload {
       optimalSolution: `function findAllConcatenatedWordsInADict(words) {\n  words.sort((a, b) => a.length - b.length);\n  const wordSet = new Set();\n  const res = [];\n  const canForm = (word) => {\n    if (wordSet.size === 0) return false;\n    const dp = new Array(word.length + 1).fill(false);\n    dp[0] = true;\n    for (let i = 1; i <= word.length; i++) {\n      for (let j = 0; j < i; j++) {\n        if (dp[j] && wordSet.has(word.substring(j, i))) {\n          dp[i] = true;\n          break;\n        }\n      }\n    }\n    return dp[word.length];\n  };\n  for (const w of words) {\n    if (w.length > 0 && canForm(w)) {\n      res.push(w);\n    }\n    wordSet.add(w);\n  }\n  return res;\n}`,
       optimalTimeComplexity: "O(N log N + N * L^2) where L is max word length",
       optimalSpaceComplexity: "O(N * L)",
-      suboptimalSolution: `function findAllConcatenatedWordsInADict(words) {\n  const wordSet = new Set(words);\n  const res = [];\n  const dfs = (word, count) => {\n    if (word === '' && count >= 2) return true;\n    for (let i = 1; i <= word.length; i++) {\n      const prefix = word.substring(0, i);\n      if (wordSet.has(prefix) && dfs(word.substring(i), count + 1)) return true;\n    }\n    return false;\n  };\n  for (const w of words) {\n    if (dfs(w, 0)) res.push(w);\n  }\n  return res;\n}`,
-      suboptimalTimeComplexity: "O(N * 2^L) without memoization",
+      suboptimalSolution: `function findAllConcatenatedWordsInADict(words) {\n  words.sort((a, b) => a.length - b.length);\n  const wordSet = new Set();\n  const res = [];\n  const dfs = (word) => {\n    if (wordSet.has(word)) return true;\n    for (let i = 1; i < word.length; i++) {\n      const prefix = word.substring(0, i);\n      if (wordSet.has(prefix) && dfs(word.substring(i))) return true;\n    }\n    return false;\n  };\n  for (const w of words) {\n    if (w.length > 0 && dfs(w)) res.push(w);\n    wordSet.add(w);\n  }\n  return res;\n}`,
+      suboptimalTimeComplexity: "O(N log N + N * 2^L) without memoization",
       suboptimalSpaceComplexity: "O(N * L)",
       commonMistakes: [
         "Allowing a word to be formed by itself (must be formed by AT LEAST TWO words, which is handled cleanly by sorting by length and checking against previous smaller words).",

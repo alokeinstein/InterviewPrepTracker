@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
+import { getServerAuth } from '@/lib/auth';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { BookOpen, FileText, ArrowRight, CheckCircle2 } from 'lucide-react';
@@ -8,7 +9,8 @@ import { BookOpen, FileText, ArrowRight, CheckCircle2 } from 'lucide-react';
 export const revalidate = 0;
 
 export default async function SystemDesignPage() {
-  const user = await prisma.user.findFirst();
+  const auth = await getServerAuth();
+  const user = auth?.user;
 
   const parts = await prisma.bookPart.findMany({
     orderBy: { partNumber: 'asc' },

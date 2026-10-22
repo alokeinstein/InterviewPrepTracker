@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
+import { getServerAuth } from '@/lib/auth';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -22,23 +23,28 @@ import {
 export const revalidate = 0;
 
 export default async function DashboardPage() {
-  const user = await prisma.user.findFirst();
-  const userId = user?.id || 'user-default-1';
+  const auth = await getServerAuth();
+  const user = auth?.user;
+  const userId = user?.id;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const [dailyPlan, dueRevisionsCount, totalDsaCount, totalConceptsCount] = await Promise.all([
-    prisma.dailyPlan.findFirst({
-      where: { userId },
-      orderBy: { date: 'desc' },
-    }),
-    prisma.revisionItem.count({
-      where: {
-        userId,
-        nextReviewDate: { lte: new Date() },
-      },
-    }),
+    userId
+      ? prisma.dailyPlan.findFirst({
+          where: { userId },
+          orderBy: { date: 'desc' },
+        })
+      : Promise.resolve(null),
+    userId
+      ? prisma.revisionItem.count({
+          where: {
+            userId,
+            nextReviewDate: { lte: new Date() },
+          },
+        })
+      : Promise.resolve(0),
     prisma.dsaProblem.count(),
     prisma.concept.count(),
   ]);

@@ -41,11 +41,12 @@ No feature, bugfix, or schema change is considered **"Done"** until the agent up
 - **Project Name:** Personal Interview Training OS / DSA Arena
 - **Stack:** Next.js 15 (App Router), React 19, TypeScript 5, Tailwind CSS 3, Prisma 5, PostgreSQL (`interview_os`).
 - **Core Modules:**
-  - **DSA Arena (`/dsa` & `/levels/[levelId]`):** 23 Level progression grid, dedicated level pages, problem cards with telemetry, code execution sandbox, optimality benchmark.
-  - **Revision Engine (`/revision`):** Spaced repetition SM-2 engine, multi-modal practice tracking (`IDE`, `By Hand`, `In Mind`), daily queue of Due Today & Overdue problems, practice history logs.
+  - **DSA Arena (`/dsa` & `/levels/[levelId]`):** 23 Level progression grid (spacious 3-column cards, in-place search, status filtering, progress indicators), dedicated level workspace with interactive View Mode switcher (**Simplistic** vs **Detailed Telemetry**), persistent layout preferences in `localStorage`.
+  - **LeetCode-Grade Workspace (`/dsa/[slug]`):** Dual independent splitters (vertical & horizontal with pointer capture, keyboard access, 60fps Monaco ResizeObserver), formatted problem statement typography with inline code pills (`.dsa-code-pill`), LeetCode-style console empty state & percentile chips, problem timer with duration tracking, revisit status badges, client-side IndexedDB draft autosave, and named checkpoints.
+  - **Revision Engine (`/revision`):** 15-rule verified spaced repetition SM-2 engine, multi-modal practice tracking (`IDE`, `By Hand`, `In Mind`), daily queue of Due Today & Overdue problems, practice history logs.
   - **System Design Academy (`/system-design`):** DDIA 11 chapters, concepts, interactive diagrams.
   - **Whiteboard & Mock Interview (`/whiteboard`, `/interview`):** Freehand canvas, simulated mock interviews.
-- **Problem Bank:** 498 canonical problems cataloged from `LeetCode_500_Google_Microsoft_Roadmap.md`.
+- **Problem Bank:** 498 canonical problems cataloged from `LeetCode_500_Google_Microsoft_Roadmap.md` with 5,837 verified test cases across 4 tiers.
 
 ---
 
@@ -64,5 +65,8 @@ No feature, bugfix, or schema change is considered **"Done"** until the agent up
 - [x] **Levels 1–20 Deep Execution Verification Audit:** All 425 problems and 4,972 test cases verified end-to-end against the sandbox execution worker. 100% passing (425/425 ACCEPTED).
 - [x] **Phase 5 (Batch 5 — Levels 21–23):** Advanced Arrays, Trie/String, Design Systems (#498 Design HashSet, #497 HashMap, #496 Deque, #495 BrowserHistory, #494 UndergroundSystem, #491 RangeModule, #490-488 MyCalendar I-III, #458 SnapshotArray, #455 TimeMap) (73 problems: #426–#498, with 865 test cases).
 - [x] **100% Curriculum Completion (Milestone Achieved!):** All 498 DSA problems across all 23 levels fully generated, seeded to PostgreSQL, and 100% empirically verified in the sandbox execution runner (498/498 ACCEPTED across 5,837 test cases, 0 generic statements, 0 <3 examples, 0 <10 TC, 100% dual benchmark solutions, 0 TypeScript errors, 21/21 regression tests passing).
+- [x] **Milestone 5 (Persistence & 15-Rule Revision Invariants):** Client-side IndexedDB draft autosave, named checkpoints, accepted snapshots, backup JSON export/import, revisit detection metrics, and full 15-rule revision policy test verification.
+- [x] **Milestone 6 (LeetCode Workspace UX & Splitters):** Dual independent splitters (vertical 20%–80%, horizontal 150px/100px) with pointer capture, keyboard accessibility, 60fps Monaco ResizeObserver, formatted problem statement typography with inline code pills (`.dsa-code-pill`), LeetCode console styling, and decoupled React 19 timer state.
+- [x] **Milestone 7 (DSA Arena UI/UX Redesign & View Mode Toggle):** Complete removal of the 500-question catalog and pagination from `/dsa`, enlarged 3-column level cards with concepts, search and filters, and dedicated `/levels/[levelId]` Card Layout toggle (**Simplistic** vs **Detailed Telemetry**) with persistent state (58/58 tests passing).
 
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
+import { getServerAuth } from '@/lib/auth';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { 
@@ -32,6 +33,7 @@ export default async function RevisionPage({
     stage?: string; 
     level?: string; 
     tab?: string;
+    upcoming?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -39,9 +41,36 @@ export default async function RevisionPage({
   const filterStage = params.stage ? parseInt(params.stage) : undefined;
   const filterLevel = params.level ? parseInt(params.level) : undefined;
   const activeTab = params.tab || 'queue'; // 'queue' | 'history'
+  const showUpcoming = params.upcoming === 'true';
 
-  const user = await prisma.user.findFirst();
-  const userId = user?.id || 'user-default-1';
+  const auth = await getServerAuth();
+  const userId = auth?.user?.id;
+
+  if (!userId) {
+    return (
+      <div className="max-w-4xl mx-auto py-16 px-4 text-center space-y-6">
+        <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto text-primary">
+          <Repeat className="h-8 w-8" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Spaced Repetition Queue (SM-2)
+          </h1>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+            Sign in to track your personalized SM-2 revision queue, active decay intervals, and multi-modal recall mastery.
+          </p>
+        </div>
+        <div>
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-xs shadow-md hover:bg-primary/90 transition"
+          >
+            Sign In with Google / Gmail
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
@@ -125,7 +154,14 @@ export default async function RevisionPage({
   const totalDueToday = dueTodayItems.length;
   const stage3Mastered = allUserItems.filter((i) => i.currentStage >= 3).length;
 
+  const todayAttempts = historyAttempts.filter((a) => {
+    const d = new Date(a.createdAt);
+    return d >= startOfToday && d <= endOfToday;
+  });
+  const todayCompletedCount = todayAttempts.length;
   const totalPracticesLogged = historyAttempts.length;
+  const dailyTarget = 20;
+  const dailyTargetPercent = Math.min(100, Math.round((todayCompletedCount / dailyTarget) * 100));
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-16">
@@ -141,10 +177,10 @@ export default async function RevisionPage({
             </Badge>
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-            Revision & Retrieval Engine
+            Revision Center
           </h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-            Progressive 3-stage cadence: Code in IDE (Stage 1) → Dry-run by Hand (Stage 2) → Mental Pattern Recall (Stage 3+).
+            Adaptive DSA revision queue prioritized by overdue schedule, active recall difficulty, and multi-modal practice modes (IDE, By Hand, In Mind).
           </p>
         </div>
 
@@ -174,6 +210,38 @@ export default async function RevisionPage({
         </div>
       </div>
 
+      {/* Daily Target Progress Bar Card */}
+      <Card className="p-4 bg-gradient-to-r from-primary/10 via-card to-card border-primary/30">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold uppercase text-primary">
+                Daily Review Target
+              </span>
+              <Badge variant="outline" className="text-[10px] font-mono">
+                {todayCompletedCount} / {dailyTarget} Questions
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Target recommended for high-retention mastery. Overdue questions are prioritized first.
+            </p>
+          </div>
+
+          <div className="w-full sm:w-64 space-y-1.5">
+            <div className="flex justify-between text-xs font-mono">
+              <span className="text-muted-foreground">Progress</span>
+              <span className="font-bold text-primary">{dailyTargetPercent}%</span>
+            </div>
+            <div className="h-2 w-full bg-muted/60 rounded-full overflow-hidden">
+              <div
+                style={{ width: `${dailyTargetPercent}%` }}
+                className="h-full bg-primary rounded-full transition-all duration-500"
+              />
+            </div>
+          </div>
+        </div>
+      </Card>
+
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="p-4 border-rose-500/30 bg-rose-500/5 space-y-1">
@@ -191,7 +259,7 @@ export default async function RevisionPage({
             <Flame className="w-4 h-4" />
           </div>
           <div className="text-2xl font-bold font-mono text-amber-400">{totalDueToday}</div>
-          <p className="text-[11px] text-muted-foreground">Scheduled for today's workout</p>
+          <p className="text-[11px] text-muted-foreground">Scheduled for today&apos;s workout</p>
         </Card>
 
         <Card className="p-4 border-purple-500/30 bg-purple-500/5 space-y-1">
@@ -341,7 +409,7 @@ export default async function RevisionPage({
             )}
           </div>
 
-          {/* Upcoming Schedule Preview */}
+          {/* Upcoming Schedule (Hidden by default, opt-in per spec 5.1) */}
           {upcomingItems.length > 0 && (
             <div className="space-y-3 pt-4 border-t border-border">
               <div className="flex items-center justify-between">
@@ -349,13 +417,21 @@ export default async function RevisionPage({
                   <Calendar className="w-3.5 h-3.5" />
                   <span>Upcoming Scheduled Reviews ({upcomingItems.length})</span>
                 </h3>
+                <Link
+                  href={`/revision?tab=${activeTab}${filterMode ? `&mode=${filterMode}` : ''}${filterStage !== undefined ? `&stage=${filterStage}` : ''}&upcoming=${!showUpcoming}`}
+                  className="text-xs font-mono text-primary hover:underline"
+                >
+                  {showUpcoming ? 'Hide Upcoming Queue' : 'Show Upcoming Queue'}
+                </Link>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {upcomingItems.slice(0, 9).map((item) => (
-                  <RevisionItemQueueCard key={item.id} item={item} status="UPCOMING" />
-                ))}
-              </div>
+              {showUpcoming && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {upcomingItems.slice(0, 12).map((item) => (
+                    <RevisionItemQueueCard key={item.id} item={item} status="UPCOMING" />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

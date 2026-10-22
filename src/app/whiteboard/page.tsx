@@ -1,21 +1,24 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
+import { getServerAuth } from '@/lib/auth';
 import { WhiteboardCanvas } from '@/features/whiteboard/WhiteboardCanvas';
 
 export const revalidate = 0;
 
 export default async function WhiteboardPage() {
-  const user = await prisma.user.findFirst();
-  const userId = user?.id || 'user-default-1';
+  const auth = await getServerAuth();
+  const userId = auth?.user?.id;
 
-  const design = await prisma.architectureDesign.findFirst({
-    where: { userId },
-    include: {
-      versions: {
-        orderBy: { versionNumber: 'desc' },
-      },
-    },
-  });
+  const design = userId
+    ? await prisma.architectureDesign.findFirst({
+        where: { userId },
+        include: {
+          versions: {
+            orderBy: { versionNumber: 'desc' },
+          },
+        },
+      })
+    : null;
 
   return (
     <div className="py-2">

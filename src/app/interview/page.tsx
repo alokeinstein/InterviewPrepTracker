@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
+import { getServerAuth } from '@/lib/auth';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -10,18 +11,26 @@ import { redirect } from 'next/navigation';
 export const revalidate = 0;
 
 export default async function InterviewHubPage() {
-  const user = await prisma.user.findFirst();
-  const userId = user?.id || 'user-default-1';
+  const auth = await getServerAuth();
+  const userId = auth?.user?.id;
 
-  const pastInterviews = await prisma.mockInterview.findMany({
-    where: { userId },
-    include: { evaluation: true },
-    orderBy: { startedAt: 'desc' },
-    take: 10,
-  });
+  const pastInterviews = userId
+    ? await prisma.mockInterview.findMany({
+        where: { userId },
+        include: { evaluation: true },
+        orderBy: { startedAt: 'desc' },
+        take: 10,
+      })
+    : [];
 
   async function createMockInterview(formData: FormData) {
     'use server';
+    const serverAuth = await getServerAuth();
+    if (!serverAuth?.user) {
+      redirect('/login');
+    }
+    const currentUserId = serverAuth.user.id;
+
     const type = formData.get('type') as 'DSA_CODING' | 'SYSTEM_DESIGN';
     const title =
       type === 'DSA_CODING'
@@ -30,7 +39,7 @@ export default async function InterviewHubPage() {
 
     const session = await prisma.mockInterview.create({
       data: {
-        userId,
+        userId: currentUserId,
         interviewType: type,
         title,
         durationMinutes: type === 'DSA_CODING' ? 45 : 60,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIProvider } from '@/services/ai/aiProvider';
 import { MasteryService } from '@/services/learning/masteryService';
-import { prisma } from '@/lib/prisma';
+import { getRequestAuth } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,7 +15,8 @@ export async function POST(req: NextRequest) {
     });
 
     // Update user mastery dynamically
-    const user = await prisma.user.findFirst();
+    const auth = await getRequestAuth(req);
+    const user = auth?.user;
     if (user && conceptId) {
       await MasteryService.updateConceptMastery(user.id, conceptId, {
         understanding: feedback.isCorrect ? 85 : 55,

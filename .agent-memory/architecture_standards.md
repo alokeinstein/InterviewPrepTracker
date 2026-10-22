@@ -26,12 +26,15 @@ This document establishes the technical invariants, design system guidelines, an
 ---
 
 ## 2. Navigation & Level Page Separation Rule (CRITICAL)
-- **Zero Inline Problem Lists on Main Dashboard:** Clicking a Level Card on `/dsa` must **never** expand or render problems below the level cards on `/dsa`. It **must** navigate to `/levels/[levelId]`.
+- **Zero Inline Problem Lists on Main Dashboard:** The main `/dsa` dashboard serves exclusively as the high-level Curriculum Progression Roadmap. Clicking a Level Card on `/dsa` navigates to `/levels/[levelId]`. No 500-question problem table is rendered on `/dsa`.
 - **Dedicated Route `/levels/[levelId]`:**
   - Must accept dynamic route parameter `levelId` (1 to 23).
-  - Shows level metadata (Level number, title, pattern, completion status).
-  - Renders interactive Problem Cards with complete telemetry.
-  - Provides breadcrumbs back to `/dsa`.
+  - Shows level metadata (Level number, title, topic, description, concepts, completion status).
+  - **Card Layout Switcher:** Provides a segmented toggle between **Simplistic** and **Detailed Telemetry** view modes:
+    - `Simplistic` (Default): Clean, uncluttered 3-column cards (`#ID`, Level, Difficulty, Title, Pattern, Solved/Time, Practice link).
+    - `Detailed Telemetry`: Rich cards with Spaced Repetition mastery, mode breakdown (`IDE`, `By Hand`, `In Mind`), last practiced time, and quick-log buttons.
+    - Persists user choice in `localStorage` under `dsa_level_card_view_mode`.
+  - Provides breadcrumbs back to `/dsa` and Level Quick-Nav (`Prev` / `Next`).
 
 ---
 
@@ -88,3 +91,37 @@ Every curriculum problem in the database must adhere to strict quality rules:
 - Hard = Rose / Red
 - Optimal = Indigo / Cyan
 - Avoid generic browser components; use custom Tailwind + Lucide icons.
+
+---
+
+## 7. Problem Workspace Splitters & Monaco Resize Standards
+- **Dual Independent Splitters:**
+  - **Vertical Splitter:** Separates the Problem Statement panel from the Editor/Console panel. Ratio constrained strictly between 20% and 80%.
+  - **Horizontal Splitter:** Separates the Monaco Code Editor from the Execution Console. Constrained between minimum editor height (150px) and minimum console height (100px).
+- **Pointer Capture & Stability:**
+  - Drag handlers MUST use `setPointerCapture` and `releasePointerCapture` to prevent cursor dropouts when dragging over Monaco iframe/DOM boundaries.
+  - Keyboard accessibility is mandatory (`role="separator"`, `aria-orientation`, `aria-valuenow`, `tabIndex={0}`, with `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Home`, `End` listeners).
+- **Synchronous 60fps Layout Updates:**
+  - Attach a `ResizeObserver` to the editor container element that immediately calls `editor.layout()` on splitter size changes.
+  - Dimensions must be persisted in `localStorage` under keys `dsa_workspace_vertical_splitter_ratio` and `dsa_workspace_console_height`.
+
+---
+
+## 8. Typography & Markdown Identifiers Engine
+- Problem statements rendered through `FormattedProblemStatement.tsx` must parse markdown identifiers (`k`, `nums[i]`, `target`, asymptotic complexities) into high-contrast code pills (`.dsa-code-pill`).
+- Example blocks must feature clearly delineated Input, Output, and Explanation callout boxes.
+- Mathematical constraints and bulleted parameters must maintain clean indentation and high readability.
+
+---
+
+## 9. Client Persistence, Named Checkpoints & Recovery Standards
+- **Offline Storage Hierarchy:**
+  - Primary storage: IndexedDB (`InterviewPrepOS_Storage`) with automatic fallback to `localStorage`.
+  - Draft isolation: drafts stored per problem ID and language key.
+- **Named Checkpoints:**
+  - Candidates can snapshot working solutions with timestamps, named labels, and preview diffs via `ProblemCheckpointsModal.tsx`.
+- **Accepted Code Snapshots:**
+  - Automatically snapshot the exact code upon successful submission; preserved immutably separate from editable drafts.
+- **Backup Export/Import:**
+  - Provide full JSON backup export and schema-validated restore.
+

@@ -82,9 +82,9 @@ describe('Database Grounding & Source Integrity', () => {
     assert.strictEqual(chapterCount, 11);
   });
 
-  test('All 498 DSA problems are loaded in PostgreSQL', async () => {
+  test('All 500 DSA problems are loaded in PostgreSQL', async () => {
     const problemCount = await prisma.dsaProblem.count();
-    assert.strictEqual(problemCount, 498);
+    assert.strictEqual(problemCount, 500);
   });
 
   test('All 23 DSA Patterns are indexed in PostgreSQL', async () => {

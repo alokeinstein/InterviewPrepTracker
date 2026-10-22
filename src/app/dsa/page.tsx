@@ -1,87 +1,43 @@
 import React from 'react';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { getServerAuth } from '@/lib/auth';
 import { Badge } from '@/components/ui/Badge';
 import { LevelCardGrid, LevelInfo } from '@/components/dsa/LevelCardGrid';
-import { Code2, ArrowRight, Clock, CheckCircle2, Search, Filter, ChevronLeft, ChevronRight, Check } from 'lucide-react';
-
-import { notFound, redirect } from 'next/navigation';
+import { LEVEL_METADATA } from '@/lib/dsa/levelMetadata';
+import { redirect } from 'next/navigation';
+import { Layers, CheckCircle2, Flame, Award } from 'lucide-react';
 
 export const revalidate = 0;
-
-const LEVEL_TITLES: Record<number, { title: string; topic: string }> = {
-  1: { title: "Fundamentals & Easy Arrays", topic: "Array Manipulation" },
-  2: { title: "Hashing, Prefix Sum & Frequency", topic: "Hash Maps & Invariant Sums" },
-  3: { title: "Two Pointers", topic: "Opposite & Fast/Slow Convergence" },
-  4: { title: "Sliding Window", topic: "Dynamic Subarrays" },
-  5: { title: "Binary Search Basics", topic: "Monotonic Predicates" },
-  6: { title: "Linked List Fundamentals", topic: "Pointers & Cycles" },
-  7: { title: "Stack, Queue & Monotonic Stack", topic: "LIFO & Next Greater Element" },
-  8: { title: "Intervals & Greedy", topic: "Interval Merging & Scheduling" },
-  9: { title: "Heap / Priority Queue / Top K", topic: "Top-K & Stream Medians" },
-  10: { title: "Trees: DFS/BFS Foundations", topic: "Recursion & LCA" },
-  11: { title: "Trees: Advanced", topic: "Tree DP & Serialization" },
-  12: { title: "Backtracking: Subsets & Permutations", topic: "State Space Pruning" },
-  13: { title: "Matrix & Grid Traversal", topic: "Flood Fill & 2D Graphs" },
-  14: { title: "Graph BFS/DFS", topic: "Cycles & Bipartite Graphs" },
-  15: { title: "Topological Sort & Union Find", topic: "DAGs & Disjoint Sets" },
-  16: { title: "Greedy & Advanced Array Patterns", topic: "Kadane's & Stock States" },
-  17: { title: "Dynamic Programming I: 1D", topic: "Linear Recurrence & Tabulation" },
-  18: { title: "Dynamic Programming II: 2D & Strings", topic: "LCS & Edit Distance" },
-  19: { title: "Advanced DP & State Machines", topic: "Game Theory & Bitmasks" },
-  20: { title: "Advanced Graphs & Shortest Paths", topic: "Dijkstra & Bridges" },
-  21: { title: "Advanced Arrays & Graph Extensions", topic: "Boyer-Moore & Range Search" },
-  22: { title: "Advanced Binary Search, Trie & String", topic: "Prefix Trees & Continuous BS" },
-  23: { title: "Advanced String, Design & Intervals", topic: "System Design Data Structures" },
-};
 
 export default async function DsaArenaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ level?: string; difficulty?: string; q?: string; page?: string; viewAll?: string }>;
+  searchParams: Promise<{ level?: string }>;
 }) {
   const params = await searchParams;
   if (params.level) {
     redirect(`/levels/${params.level}`);
   }
 
-  const difficultyFilter = params.difficulty as any;
-  const searchQuery = params.q?.trim();
-  const page = Math.max(1, parseInt(params.page || '1'));
-  const isViewAll = params.viewAll === 'true';
-  const pageSize = isViewAll ? 500 : 48;
+  // Determine authenticated user session
+  const auth = await getServerAuth();
+  const userId = auth?.user?.id;
 
-  const where: any = {};
-  if (difficultyFilter) where.difficulty = difficultyFilter;
-  if (searchQuery) where.title = { contains: searchQuery, mode: 'insensitive' };
-
-  // Fetch data in parallel
-  const [
-    problems, 
-    filteredCount, 
-    totalCatalogCount, 
-    levelGroups, 
-    acceptedSubmissions
-  ] = await Promise.all([
-    prisma.dsaProblem.findMany({
-      where,
-      orderBy: { leetcodeId: 'asc' },
-      skip: isViewAll ? 0 : (page - 1) * pageSize,
-      take: pageSize,
-      include: { pattern: true },
-    }),
-    prisma.dsaProblem.count({ where }),
+  // Fetch catalog aggregate stats and user progress in parallel
+  const [totalCatalogCount, levelGroups, acceptedSubmissions] = await Promise.all([
     prisma.dsaProblem.count(),
     prisma.dsaProblem.groupBy({
       by: ['level'],
       _count: { id: true },
       orderBy: { level: 'asc' },
     }),
-    prisma.dsaSubmission.findMany({
-      where: { status: 'ACCEPTED' },
-      select: { problemId: true, problem: { select: { level: true } } },
-    }),
+    userId
+      ? prisma.dsaSubmission.findMany({
+          where: { userId, status: 'ACCEPTED' },
+          select: { problemId: true, problem: { select: { level: true } } },
+        })
+      : Promise.resolve([]),
   ]);
 
   // Aggregate user progress metrics
@@ -98,27 +54,36 @@ export default async function DsaArenaPage({
     }
   }
 
-  // Build Level Info cards
+  // Build enhanced Level Info cards with descriptions and concepts
   const levelsInfo: LevelInfo[] = levelGroups.map((g) => {
-    const meta = LEVEL_TITLES[g.level] || { title: `Level ${g.level}`, topic: 'Algorithms' };
+    const meta = LEVEL_METADATA[g.level] || {
+      title: `Level ${g.level}`,
+      topic: 'Algorithms & Problem Solving',
+      description: 'Systematic algorithmic progression and pattern mastery.',
+      concepts: [],
+    };
     const solvedSet = levelSolvedCounts[g.level] || new Set();
     return {
       levelNumber: g.level,
       title: meta.title,
       topic: meta.topic,
+      description: meta.description,
+      concepts: meta.concepts,
       totalProblems: g._count.id,
       solvedCount: solvedSet.size,
     };
   });
 
-  const totalPages = Math.ceil(filteredCount / pageSize);
+  const completionPct = totalCatalogCount > 0
+    ? Math.round((totalSolvedCount / totalCatalogCount) * 100)
+    : 0;
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+    <div className="space-y-8 max-w-7xl mx-auto pb-16">
       {/* Platform Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border pb-6">
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <Badge variant="outline" className="font-mono text-xs">
               {totalCatalogCount} CURRICULUM PROBLEMS
             </Badge>
@@ -126,213 +91,61 @@ export default async function DsaArenaPage({
               23 Dependency Levels
             </Badge>
             <Badge variant="success" className="font-mono text-xs">
-              {totalSolvedCount} / {totalCatalogCount} Solved
+              {totalSolvedCount} / {totalCatalogCount} Solved ({completionPct}%)
             </Badge>
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
             DSA Arena
           </h1>
-          <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-            Enterprise-scale algorithmic curriculum: Complete multi-tier test suites, runtime percentile benchmarking, and progressive 5-stage hint engines.
+          <p className="text-sm text-muted-foreground mt-1 max-w-2xl leading-relaxed">
+            Enterprise-scale algorithmic curriculum: Select any dependency level below to open its dedicated problem workspace with customizable card views and spaced repetition telemetry.
           </p>
         </div>
 
-        {/* Global Search & Filters */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <form method="GET" action="/dsa" className="flex items-center gap-2">
-            {difficultyFilter && <input type="hidden" name="difficulty" value={difficultyFilter} />}
-            <div className="relative">
-              <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-2.5" />
-              <input
-                type="text"
-                name="q"
-                defaultValue={searchQuery || ''}
-                placeholder="Search 500 problems..."
-                className="pl-9 pr-3 py-1.5 text-xs bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-primary w-48 sm:w-60"
-              />
+        {/* Quick Stat Pill Highlights */}
+        <div className="flex items-center gap-3">
+          <div className="px-4 py-2.5 rounded-xl border border-border bg-card/60 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+              <CheckCircle2 className="w-4 h-4" />
             </div>
-            <button
-              type="submit"
-              className="px-3 py-1.5 text-xs bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition shadow"
-            >
-              Search
-            </button>
-            {(searchQuery || difficultyFilter) && (
-              <Link href="/dsa" className="text-xs text-muted-foreground hover:text-foreground underline font-mono">
-                Clear
-              </Link>
-            )}
-          </form>
+            <div>
+              <span className="text-[11px] font-mono text-muted-foreground block">Solved</span>
+              <span className="text-sm font-bold font-mono text-foreground">
+                {totalSolvedCount} / {totalCatalogCount}
+              </span>
+            </div>
+          </div>
 
-          {/* Difficulty Filter Badges */}
-          <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-lg border border-border">
-            <Link href="/dsa">
-              <Badge
-                variant={!difficultyFilter ? 'default' : 'outline'}
-                className="text-[10px] cursor-pointer"
-              >
-                All
-              </Badge>
-            </Link>
-            <Link href="/dsa?difficulty=EASY">
-              <Badge
-                variant={difficultyFilter === 'EASY' ? 'success' : 'outline'}
-                className="text-[10px] cursor-pointer text-emerald-400"
-              >
-                Easy
-              </Badge>
-            </Link>
-            <Link href="/dsa?difficulty=MEDIUM">
-              <Badge
-                variant={difficultyFilter === 'MEDIUM' ? 'warning' : 'outline'}
-                className="text-[10px] cursor-pointer text-amber-400"
-              >
-                Med
-              </Badge>
-            </Link>
-            <Link href="/dsa?difficulty=HARD">
-              <Badge
-                variant={difficultyFilter === 'HARD' ? 'destructive' : 'outline'}
-                className="text-[10px] cursor-pointer text-rose-400"
-              >
-                Hard
-              </Badge>
-            </Link>
+          <div className="px-4 py-2.5 rounded-xl border border-border bg-card/60 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <Layers className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-[11px] font-mono text-muted-foreground block">Roadmap</span>
+              <span className="text-sm font-bold font-mono text-foreground">
+                23 Levels
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* 23 Gamified Level Cards Navigation Grid */}
-      <section className="space-y-3">
+      <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold tracking-tight text-foreground flex items-center gap-2">
-            <span>Curriculum Progression</span>
-            <span className="text-xs font-mono text-muted-foreground font-normal">
-              (Click any card to open dedicated level workspace)
+          <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+            <span>Curriculum Progression Roadmap</span>
+            <span className="text-xs font-mono text-muted-foreground font-normal hidden sm:inline">
+              — Click any card to enter the dedicated level problem suite
             </span>
           </h2>
         </div>
+
         <LevelCardGrid
           levels={levelsInfo}
           totalSolved={totalSolvedCount}
           totalProblems={totalCatalogCount}
         />
-      </section>
-
-      {/* Global Problem Catalog Section */}
-      <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
-          <div className="flex items-center gap-2">
-            <h3 className="text-base font-bold text-foreground">
-              All Curriculum Problems
-            </h3>
-            <Badge variant="outline" className="font-mono text-xs">
-              Showing {problems.length} of {filteredCount}
-            </Badge>
-          </div>
-
-          {/* View mode toggle */}
-          <div className="flex items-center gap-2 text-xs">
-            <Link
-              href={isViewAll ? '/dsa' : '/dsa?viewAll=true'}
-              className="text-muted-foreground hover:text-foreground transition underline font-mono text-xs"
-            >
-              {isViewAll ? 'Paginated View (48 / page)' : 'View All 498 Problems'}
-            </Link>
-          </div>
-        </div>
-
-        {/* Problems Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-          {problems.map((problem) => {
-            const isSolved = solvedProblemIdSet.has(problem.id);
-            return (
-              <Link key={problem.id} href={`/dsa/${problem.slug}`} className="group block focus:outline-none">
-                <Card className={`h-full p-4 flex flex-col justify-between transition-all duration-200 bg-card/70 hover:bg-card hover:border-primary/50 ${
-                  isSolved ? 'border-emerald-500/40 bg-emerald-500/5' : ''
-                }`}>
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-2.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-muted-foreground">
-                          #{problem.leetcodeId}
-                        </span>
-                        <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                          Level {problem.level}
-                        </span>
-                      </div>
-                      <Badge
-                        variant={
-                          problem.difficulty === 'EASY'
-                            ? 'success'
-                            : problem.difficulty === 'MEDIUM'
-                            ? 'warning'
-                            : 'destructive'
-                        }
-                        className="text-[10px] font-mono px-2 py-0.5"
-                      >
-                        {problem.difficulty}
-                      </Badge>
-                    </div>
-
-                    <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                      {problem.title}
-                    </h3>
-                    
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                      Pattern: {problem.pattern?.name || problem.topic}
-                    </p>
-                  </div>
-
-                  <div className="pt-3 mt-3 border-t border-border flex items-center justify-between text-xs font-mono">
-                    <div className="flex items-center gap-2">
-                      {isSolved ? (
-                        <span className="text-emerald-500 font-semibold flex items-center gap-1 text-[11px]">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Solved
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground flex items-center gap-1 text-[11px]">
-                          <Clock className="w-3 h-3" /> ~{problem.estimatedTimeMin}m
-                        </span>
-                      )}
-                    </div>
-
-                    <span className="text-primary font-medium group-hover:translate-x-1 transition-transform flex items-center gap-1 text-xs">
-                      Practice <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
-                  </div>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* Pagination when viewing catalog */}
-        {!isViewAll && totalPages > 1 && (
-          <div className="flex items-center justify-center gap-3 pt-6 border-t border-border">
-            <Link
-              href={`/dsa?page=${Math.max(1, page - 1)}${difficultyFilter ? `&difficulty=${difficultyFilter}` : ''}${searchQuery ? `&q=${searchQuery}` : ''}`}
-              className={`p-2 rounded-lg border border-border text-xs flex items-center gap-1 transition ${
-                page <= 1 ? 'pointer-events-none opacity-40' : 'hover:bg-muted'
-              }`}
-            >
-              <ChevronLeft className="w-4 h-4" /> Previous
-            </Link>
-
-            <span className="text-xs font-mono text-muted-foreground">
-              Page <strong className="text-foreground">{page}</strong> of <strong className="text-foreground">{totalPages}</strong>
-            </span>
-
-            <Link
-              href={`/dsa?page=${Math.min(totalPages, page + 1)}${difficultyFilter ? `&difficulty=${difficultyFilter}` : ''}${searchQuery ? `&q=${searchQuery}` : ''}`}
-              className={`p-2 rounded-lg border border-border text-xs flex items-center gap-1 transition ${
-                page >= totalPages ? 'pointer-events-none opacity-40' : 'hover:bg-muted'
-              }`}
-            >
-              Next <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-        )}
       </section>
     </div>
   );

@@ -665,9 +665,9 @@ export function getLevel23Payload(): LevelPayload {
       optimalSolution: `function numDecodings(s) {\n  const MOD = 1000000007n;\n  let e0 = 1n, e1 = 0n, e2 = 0n;\n  for (const c of s) {\n    let f0 = 0n, f1 = 0n, f2 = 0n;\n    if (c === '*') {\n      f0 = 9n * e0 + 9n * e1 + 6n * e2;\n      f1 = e0;\n      f2 = e0;\n    } else {\n      const d = BigInt(c);\n      f0 = (d > 0n ? e0 : 0n) + e1 + (d <= 6n ? e2 : 0n);\n      f1 = d === 1n ? e0 : 0n;\n      f2 = d === 2n ? e0 : 0n;\n    }\n    e0 = f0 % MOD;\n    e1 = f1 % MOD;\n    e2 = f2 % MOD;\n  }\n  return Number(e0);\n}`,
       optimalTimeComplexity: "O(N)",
       optimalSpaceComplexity: "O(1)",
-      suboptimalSolution: `function numDecodings(s) {\n  const MOD = 1000000007;\n  const dp = new Array(s.length + 1).fill(0);\n  dp[0] = 1;\n  // Standard DP array\n  for (let i = 1; i <= s.length; i++) {\n    // compute dp[i]\n  }\n  return dp[s.length];\n}`,
+      suboptimalSolution: `function numDecodings(s) {\n  const MOD = 1000000007n;\n  const n = s.length;\n  const dp = new Array(n + 1).fill(0n);\n  dp[0] = 1n;\n  dp[1] = s[0] === '*' ? 9n : s[0] === '0' ? 0n : 1n;\n  for (let i = 2; i <= n; i++) {\n    const c1 = s[i - 2], c2 = s[i - 1];\n    if (c2 === '*') dp[i] = (dp[i] + 9n * dp[i - 1]) % MOD;\n    else if (c2 !== '0') dp[i] = (dp[i] + dp[i - 1]) % MOD;\n    if (c1 === '*' && c2 === '*') dp[i] = (dp[i] + 15n * dp[i - 2]) % MOD;\n    else if (c1 === '*') {\n      if (c2 >= '0' && c2 <= '6') dp[i] = (dp[i] + 2n * dp[i - 2]) % MOD;\n      else dp[i] = (dp[i] + dp[i - 2]) % MOD;\n    } else if (c2 === '*') {\n      if (c1 === '1') dp[i] = (dp[i] + 9n * dp[i - 2]) % MOD;\n      else if (c1 === '2') dp[i] = (dp[i] + 6n * dp[i - 2]) % MOD;\n    } else {\n      const val = parseInt(c1 + c2, 10);\n      if (val >= 10 && val <= 26) dp[i] = (dp[i] + dp[i - 2]) % MOD;\n    }\n  }\n  return Number(dp[n]);\n}`,
       suboptimalTimeComplexity: "O(N)",
-      suboptimalSpaceComplexity: "O(N)",
+      suboptimalSpaceComplexity: "O(N) auxiliary table",
       commonMistakes: [
         "Integer overflow if not taking modulo at each step.",
         "Missing that '*' cannot represent '0'."
@@ -1498,8 +1498,8 @@ export function getLevel23Payload(): LevelPayload {
       optimalSolution: `class RangeModule {\n  constructor() {\n    this.intervals = [];\n  }\n  addRange(left, right) {\n    const next = [];\n    let inserted = false;\n    for (const [l, r] of this.intervals) {\n      if (r < left) {\n        next.push([l, r]);\n      } else if (right < l) {\n        if (!inserted) { next.push([left, right]); inserted = true; }\n        next.push([l, r]);\n      } else {\n        left = Math.min(left, l);\n        right = Math.max(right, r);\n      }\n    }\n    if (!inserted) next.push([left, right]);\n    this.intervals = next;\n  }\n  queryRange(left, right) {\n    let l = 0, r = this.intervals.length - 1;\n    while (l <= r) {\n      const mid = (l + r) >> 1;\n      if (this.intervals[mid][0] <= left && right <= this.intervals[mid][1]) return true;\n      if (this.intervals[mid][0] > left) r = mid - 1;\n      else l = mid + 1;\n    }\n    return false;\n  }\n  removeRange(left, right) {\n    const next = [];\n    for (const [l, r] of this.intervals) {\n      if (r <= left || l >= right) {\n        next.push([l, r]);\n      } else {\n        if (l < left) next.push([l, left]);\n        if (r > right) next.push([right, r]);\n      }\n    }\n    this.intervals = next;\n  }\n}`,
       optimalTimeComplexity: "O(N) for add and remove, O(log N) for query",
       optimalSpaceComplexity: "O(N)",
-      suboptimalSolution: `class RangeModule {\n  constructor() {\n    this.intervals = [];\n  }\n  addRange(left, right) {\n    this.intervals.push([left, right]);\n    this.intervals.sort((a, b) => a[0] - b[0]);\n    // merge intervals\n  }\n  queryRange(left, right) {\n    return this.intervals.some(([l, r]) => l <= left && right <= r);\n  }\n  removeRange(left, right) {\n    // linear scan\n  }\n}`,
-      suboptimalTimeComplexity: "O(N log N)",
+      suboptimalSolution: `class RangeModule {\n  constructor() {\n    this.intervals = [];\n  }\n  addRange(left, right) {\n    const next = [];\n    let inserted = false;\n    for (const [l, r] of this.intervals) {\n      if (right < l) {\n        if (!inserted) { next.push([left, right]); inserted = true; }\n        next.push([l, r]);\n      } else if (left > r) {\n        next.push([l, r]);\n      } else {\n        left = Math.min(left, l);\n        right = Math.max(right, r);\n      }\n    }\n    if (!inserted) next.push([left, right]);\n    this.intervals = next;\n  }\n  queryRange(left, right) {\n    for (const [l, r] of this.intervals) {\n      if (l <= left && right <= r) return true;\n    }\n    return false;\n  }\n  removeRange(left, right) {\n    const next = [];\n    for (const [l, r] of this.intervals) {\n      if (right <= l || left >= r) {\n        next.push([l, r]);\n      } else {\n        if (l < left) next.push([l, left]);\n        if (right < r) next.push([right, r]);\n      }\n    }\n    this.intervals = next;\n  }\n}`,
+      suboptimalTimeComplexity: "O(N) for add/remove/query",
       suboptimalSpaceComplexity: "O(N)",
       commonMistakes: [
         "Not merging adjacent or overlapping intervals cleanly.",
@@ -2630,6 +2630,214 @@ export function getLevel23Payload(): LevelPayload {
             ["MyHashSet", ...Array.from({ length: 30 }, (_, i) => i % 2 === 0 ? "add" : "contains")],
             [[], ...Array.from({ length: 30 }, (_, i) => i % 2 === 0 ? [i * 1000] : [i * 1000])]
           ]
+        ]
+      }
+    }),
+
+    // 499. Minimum Cost to Connect Two Groups of Points
+    createProblem({
+      num: 499,
+      title: "Minimum Cost to Connect Two Groups of Points",
+      slug: "minimum-cost-to-connect-two-groups-of-points",
+      level: 23,
+      difficulty: "HARD",
+      topic: "Dynamic Programming / Bitmask",
+      patternSlug: "advanced-design-intervals",
+      estimatedTimeMin: 35,
+      statement: "You are given two groups of points where the first group has `size1` points, the second group has `size2` points, and `size1 >= size2`.\n\nThe `cost` matrix of size `size1 x size2` represents the connection cost where `cost[i][j]` is the cost to connect point `i` of the first group and point `j` of the second group.\n\nTwo groups of points are connected if every point in each group is connected to one or more points in the other group. In other words, each point of the first group must be connected to at least one point of the second group, and each point of the second group must be connected to at least one point of the first group.\n\nReturn the minimum cost to connect the two groups.",
+      functionName: "connectTwoGroups",
+      parameters: [
+        { name: "cost", type: "number[][]", description: "Connection cost matrix of dimensions size1 x size2" }
+      ],
+      returnType: "number",
+      starterTemplates: {
+        javascript: `/**\n * @param {number[][]} cost\n * @return {number}\n */\nfunction connectTwoGroups(cost) {\n  \n}\n`,
+        typescript: `function connectTwoGroups(cost: number[][]): number {\n  \n}\n`,
+        python: `class Solution:\n    def connectTwoGroups(self, cost: list[list[int]]) -> int:\n        pass\n`
+      },
+      constraints: [
+        "size1 == cost.length",
+        "size2 == cost[i].length",
+        "1 <= size1, size2 <= 12",
+        "size1 >= size2",
+        "0 <= cost[i][j] <= 100"
+      ],
+      examples: [
+        {
+          input: "cost = [[15, 96], [36, 2]]",
+          output: "17",
+          explanation: "The optimal strategy is: connect group 1 point 0 to group 2 point 0 (cost 15), and group 1 point 1 to group 2 point 1 (cost 2). Total cost is 17."
+        },
+        {
+          input: "cost = [[1, 3, 5], [4, 1, 1], [1, 5, 3]]",
+          output: "4",
+          explanation: "Connect (0,0) cost 1, (1,1) cost 1, (1,2) cost 1, (2,0) cost 1. Total cost is 4."
+        },
+        {
+          input: "cost = [[2, 5, 1], [3, 4, 7], [8, 1, 2], [6, 2, 4], [3, 8, 8]]",
+          output: "10",
+          explanation: "Minimum total cost across all connections is 10."
+        }
+      ],
+      optimalSolution: `function connectTwoGroups(cost) {\n  const size1 = cost.length, size2 = cost[0].length;\n  const minCost2 = new Array(size2).fill(Infinity);\n  for (let j = 0; j < size2; j++) {\n    for (let i = 0; i < size1; i++) {\n      minCost2[j] = Math.min(minCost2[j], cost[i][j]);\n    }\n  }\n  const memo = new Map();\n  function dp(i, mask) {\n    if (i === size1) {\n      let total = 0;\n      for (let j = 0; j < size2; j++) {\n        if ((mask & (1 << j)) === 0) total += minCost2[j];\n      }\n      return total;\n    }\n    const key = (i << 12) | mask;\n    if (memo.has(key)) return memo.get(key);\n    let res = Infinity;\n    for (let j = 0; j < size2; j++) {\n      res = Math.min(res, cost[i][j] + dp(i + 1, mask | (1 << j)));\n    }\n    memo.set(key, res);\n    return res;\n  }\n  return dp(0, 0);\n}`,
+      optimalTimeComplexity: "O(size1 * 2^size2 * size2)",
+      optimalSpaceComplexity: "O(size1 * 2^size2)",
+      suboptimalSolution: `function connectTwoGroups(cost) {\n  const size1 = cost.length, size2 = cost[0].length;\n  const minCost2 = new Array(size2).fill(Infinity);\n  for (let j = 0; j < size2; j++) {\n    for (let i = 0; i < size1; i++) minCost2[j] = Math.min(minCost2[j], cost[i][j]);\n  }\n  const memo = {};\n  function solve(i, mask) {\n    if (i === size1) {\n      let extra = 0;\n      for (let j = 0; j < size2; j++) {\n        if (!(mask & (1 << j))) extra += minCost2[j];\n      }\n      return extra;\n    }\n    const k = i + ',' + mask;\n    if (memo[k] !== undefined) return memo[k];\n    let ans = Infinity;\n    for (let j = 0; j < size2; j++) {\n      ans = Math.min(ans, cost[i][j] + solve(i + 1, mask | (1 << j)));\n    }\n    return (memo[k] = ans);\n  }\n  return solve(0, 0);\n}`,
+      suboptimalTimeComplexity: "O(size1 * 2^size2 * size2)",
+      suboptimalSpaceComplexity: "O(size1 * 2^size2)",
+      commonMistakes: [
+        "Connecting each point from group 1 but forgetting that points in group 2 must also have at least one connection.",
+        "Overcounting costs by branching greedily without memoization over the subset bitmask."
+      ],
+      hints: [
+        "Since size2 <= 12, use a bitmask of length size2 to represent which points in group 2 are already connected.",
+        "For each point i in group 1, try connecting it to every point j in group 2 and transition to (i + 1, mask | (1 << j)).",
+        "Once all points in group 1 are processed (i == size1), greedily connect any unconnected group 2 points using their minimum edge cost minCost2[j]."
+      ],
+      oracleFn: (cost: number[][]) => {
+        const size1 = cost.length, size2 = cost[0].length;
+        const minCost2 = new Array(size2).fill(Infinity);
+        for (let j = 0; j < size2; j++) {
+          for (let i = 0; i < size1; i++) {
+            minCost2[j] = Math.min(minCost2[j], cost[i][j]);
+          }
+        }
+        const memo = new Map<number, number>();
+        function dp(i: number, mask: number): number {
+          if (i === size1) {
+            let total = 0;
+            for (let j = 0; j < size2; j++) {
+              if ((mask & (1 << j)) === 0) total += minCost2[j];
+            }
+            return total;
+          }
+          const key = (i << 12) | mask;
+          if (memo.has(key)) return memo.get(key)!;
+          let res = Infinity;
+          for (let j = 0; j < size2; j++) {
+            res = Math.min(res, cost[i][j] + dp(i + 1, mask | (1 << j)));
+          }
+          memo.set(key, res);
+          return res;
+        }
+        return dp(0, 0);
+      },
+      testCases: {
+        functional: [
+          [[[15, 96], [36, 2]]],
+          [[[1, 3, 5], [4, 1, 1], [1, 5, 3]]],
+          [[[2, 5, 1], [3, 4, 7], [8, 1, 2], [6, 2, 4], [3, 8, 8]]],
+          [[[1, 1], [1, 1]]]
+        ],
+        boundary: [
+          [[[10]]],
+          [[[5, 10]]],
+          [[[1, 2], [3, 4]]]
+        ],
+        adversarial: [
+          [[[100, 100], [100, 100]]],
+          [[[1, 10, 100], [10, 1, 10], [100, 10, 1]]],
+          [[[0, 5], [5, 0]]]
+        ],
+        stress: [
+          [Array.from({ length: 6 }, () => Array.from({ length: 6 }, (_, j) => (j * 7 + 3) % 25))],
+          [Array.from({ length: 8 }, (_, i) => Array.from({ length: 5 }, (_, j) => ((i + j) * 11) % 40))]
+        ]
+      }
+    }),
+
+    // 500. Minimum Number of Vertices to Reach All Nodes
+    createProblem({
+      num: 500,
+      title: "Minimum Number of Vertices to Reach All Nodes",
+      slug: "minimum-number-of-vertices-to-reach-all-nodes",
+      level: 23,
+      difficulty: "MEDIUM",
+      topic: "Graph / In-Degree",
+      patternSlug: "advanced-design-intervals",
+      estimatedTimeMin: 20,
+      statement: "Given a directed acyclic graph, with `n` vertices numbered from `0` to `n-1`, and an array `edges` where `edges[i] = [from_i, to_i]` represents a directed edge from node `from_i` to node `to_i`.\n\nFind the smallest set of vertices from which all nodes in the graph are reachable. It's guaranteed that a unique solution exists.\n\nReturn the vertices in ascending order.",
+      functionName: "findSmallestSetOfVertices",
+      parameters: [
+        { name: "n", type: "number", description: "Number of vertices" },
+        { name: "edges", type: "number[][]", description: "Directed edges [from, to]" }
+      ],
+      returnType: "number[]",
+      starterTemplates: {
+        javascript: `/**\n * @param {number} n\n * @param {number[][]} edges\n * @return {number[]}\n */\nfunction findSmallestSetOfVertices(n, edges) {\n  \n}\n`,
+        typescript: `function findSmallestSetOfVertices(n: number, edges: number[][]): number[] {\n  \n}\n`,
+        python: `class Solution:\n    def findSmallestSetOfVertices(self, n: int, edges: list[list[int]]) -> list[int]:\n        pass\n`
+      },
+      constraints: [
+        "2 <= n <= 10^5",
+        "1 <= edges.length <= min(10^5, n * (n - 1) / 2)",
+        "edges[i].length == 2",
+        "0 <= from_i, to_i < n",
+        "All pairs (from_i, to_i) are distinct."
+      ],
+      examples: [
+        {
+          input: "n = 6, edges = [[0,1],[0,2],[2,5],[3,4],[4,2]]",
+          output: "[0,3]",
+          explanation: "It's not possible to reach all the nodes from a single vertex. From 0 we can reach [0,1,2,5]. From 3 we can reach [3,4,2,5]. Thus, we output [0,3]."
+        },
+        {
+          input: "n = 5, edges = [[0,1],[2,1],[3,1],[1,4],[2,4]]",
+          output: "[0,2,3]",
+          explanation: "Notice that vertices 0, 3 and 2 are not reachable from any other node, so we must include them. Also any of these vertices can reach nodes 1 and 4."
+        },
+        {
+          input: "n = 3, edges = [[0,1],[1,2]]",
+          output: "[0]",
+          explanation: "Node 0 has no incoming edges and can reach all nodes."
+        }
+      ],
+      optimalSolution: `function findSmallestSetOfVertices(n, edges) {\n  const hasIncoming = new Uint8Array(n);\n  for (let i = 0; i < edges.length; i++) {\n    hasIncoming[edges[i][1]] = 1;\n  }\n  const res = [];\n  for (let i = 0; i < n; i++) {\n    if (!hasIncoming[i]) res.push(i);\n  }\n  return res;\n}`,
+      optimalTimeComplexity: "O(V + E)",
+      optimalSpaceComplexity: "O(V)",
+      suboptimalSolution: `function findSmallestSetOfVertices(n, edges) {\n  const inDegree = new Array(n).fill(0);\n  for (const [u, v] of edges) inDegree[v]++;\n  const res = [];\n  for (let i = 0; i < n; i++) {\n    if (inDegree[i] === 0) res.push(i);\n  }\n  return res;\n}`,
+      suboptimalTimeComplexity: "O(V + E)",
+      suboptimalSpaceComplexity: "O(V)",
+      commonMistakes: [
+        "Running full BFS or DFS traversals from each node which is O(V * (V + E)) instead of simply identifying zero in-degree nodes in O(V + E).",
+        "Assuming cycles exist when the problem states the graph is a DAG."
+      ],
+      hints: [
+        "A node that has an incoming edge can always be reached from some other predecessor node.",
+        "A node with 0 incoming edges (in-degree == 0) cannot be reached from any other node, so it MUST be in the answer.",
+        "In a DAG, every node is reachable from at least one node with in-degree 0. Therefore, the set of all in-degree 0 nodes is the exact minimal set."
+      ],
+      oracleFn: (n: number, edges: number[][]) => {
+        const hasIncoming = new Uint8Array(n);
+        for (let i = 0; i < edges.length; i++) {
+          hasIncoming[edges[i][1]] = 1;
+        }
+        const res: number[] = [];
+        for (let i = 0; i < n; i++) {
+          if (!hasIncoming[i]) res.push(i);
+        }
+        return res;
+      },
+      testCases: {
+        functional: [
+          [6, [[0, 1], [0, 2], [2, 5], [3, 4], [4, 2]]],
+          [5, [[0, 1], [2, 1], [3, 1], [1, 4], [2, 4]]],
+          [3, [[0, 1], [1, 2]]],
+          [4, [[0, 1], [2, 3]]]
+        ],
+        boundary: [
+          [2, [[0, 1]]],
+          [3, []],
+          [2, []]
+        ],
+        adversarial: [
+          [4, [[1, 2], [2, 3]]],
+          [5, [[0, 4], [1, 4], [2, 4], [3, 4]]],
+          [4, [[0, 1], [0, 2], [0, 3]]]
+        ],
+        stress: [
+          [50, Array.from({ length: 48 }, (_, i) => [i, i + 1])],
+          [60, Array.from({ length: 50 }, (_, i) => [0, i + 1])]
         ]
       }
     }),

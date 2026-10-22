@@ -13,16 +13,26 @@ import { getLevel12Payload } from './generators/level12';
 import { getLevel13Payload } from './generators/level13';
 import { getLevel14Payload } from './generators/level14';
 import { getLevel15Payload } from './generators/level15';
+import { getLevel16Payload } from './generators/level16';
+import { getLevel17Payload } from './generators/level17';
+import { getLevel18Payload } from './generators/level18';
+import { getLevel19Payload } from './generators/level19';
+import { getLevel20Payload } from './generators/level20';
+import { getLevel21Payload } from './generators/level21';
+import { getLevel22Payload } from './generators/level22';
+import { getLevel23Payload } from './generators/level23';
 
 const generators = [
   getLevel1Payload, getLevel2Payload, getLevel3Payload, getLevel4Payload, getLevel5Payload,
   getLevel6Payload, getLevel7Payload, getLevel8Payload, getLevel9Payload, getLevel10Payload,
-  getLevel11Payload, getLevel12Payload, getLevel13Payload, getLevel14Payload, getLevel15Payload
+  getLevel11Payload, getLevel12Payload, getLevel13Payload, getLevel14Payload, getLevel15Payload,
+  getLevel16Payload, getLevel17Payload, getLevel18Payload, getLevel19Payload, getLevel20Payload,
+  getLevel21Payload, getLevel22Payload, getLevel23Payload
 ];
 
 let issues = 0;
 
-for (let lvl = 1; lvl <= 15; lvl++) {
+for (let lvl = 1; lvl <= 23; lvl++) {
   const payload = generators[lvl - 1]();
   for (const prob of payload.problems) {
     // Check title, slug, functionName
@@ -58,7 +68,7 @@ for (let lvl = 1; lvl <= 15; lvl++) {
 }
 
 if (issues === 0) {
-  console.log(`✅ All 340 problems verified across Levels 1–15! Zero test case corruption detected.`);
+  console.log(`✅ All 500 problems verified across Levels 1–23! Zero test case corruption detected.`);
 } else {
   console.error(`⚠️ Found ${issues} test case issues.`);
 }
