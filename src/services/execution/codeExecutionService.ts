@@ -27,7 +27,7 @@ export interface ExecutionTestCase {
 
 export interface ExecutionOptions {
   functionName?: string;
-  executionModel?: 'FUNCTION' | 'STDIN_STDOUT';
+  executionModel?: 'FUNCTION' | 'DESIGN' | 'STDIN_STDOUT';
   timeoutMs?: number;
   optimalRuntimeMs?: number;
   maxAllowedRuntimeMs?: number;

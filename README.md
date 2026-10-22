@@ -4,6 +4,16 @@
 
 ---
 
+## 🧠 Agent Memory & Governance System
+All Antigravity agents follow strict session startup, architecture standards, and audit logs defined in [`.agent-memory/`](file:///c:/Users/alokz/Downloads/Projects/Alok/InterviewPrepTracker/.agent-memory/):
+- [Master Operational Entrypoint (`agents.md`)](file:///c:/Users/alokz/Downloads/Projects/Alok/InterviewPrepTracker/.agent-memory/agents.md)
+- [Append-Only Audit Log (`changes.log`)](file:///c:/Users/alokz/Downloads/Projects/Alok/InterviewPrepTracker/.agent-memory/changes.log)
+- [Architecture & Standards (`architecture_standards.md`)](file:///c:/Users/alokz/Downloads/Projects/Alok/InterviewPrepTracker/.agent-memory/architecture_standards.md)
+- [Database Migrations (`database_migrations.md`)](file:///c:/Users/alokz/Downloads/Projects/Alok/InterviewPrepTracker/.agent-memory/database_migrations.md)
+- [Architecture Decision Records (`decisions.md` - Lazy Loaded)](file:///c:/Users/alokz/Downloads/Projects/Alok/InterviewPrepTracker/.agent-memory/decisions.md)
+
+---
+
 ## 🎯 Central Philosophy
 **"Passive reading is not learning."**
 

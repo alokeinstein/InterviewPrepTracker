@@ -1,0 +1,2956 @@
+{
+  "level": 20,
+  "levelTitle": "Level 20 — Advanced Graphs & Shortest Paths",
+  "topic": "Dijkstra's Algorithm, Bellman-Ford, Tarjan Bridges, Eulerian Hierholzer Paths, 0-1 BFS, and Multi-State BFS",
+  "problems": [
+    {
+      "num": 408,
+      "title": "Network Delay Time",
+      "slug": "network-delay-time",
+      "level": 20,
+      "difficulty": "MEDIUM",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 25,
+      "statement": "You are given a network of `n` nodes, labeled from `1` to `n`. You are also given `times`, a list of travel times as directed edges `times[i] = (ui, vi, wi)`, where `ui` is the source node, `vi` is the target node, and `wi` is the time it takes for a signal to travel from source to target.\n\nWe will send a signal from a given node `k`. Return the minimum time it takes for all the `n` nodes to receive the signal. If it is impossible for all the `n` nodes to receive the signal, return `-1`.",
+      "executionModel": "FUNCTION",
+      "functionName": "networkDelayTime",
+      "parameterDefinitions": [
+        {
+          "name": "times",
+          "type": "number[][]",
+          "description": "List of directed edges [u, v, w]"
+        },
+        {
+          "name": "n",
+          "type": "number",
+          "description": "Total number of nodes (1-indexed)"
+        },
+        {
+          "name": "k",
+          "type": "number",
+          "description": "Starting node"
+        }
+      ],
+      "returnType": "number",
+      "constraints": [
+        "1 <= k <= n <= 100",
+        "1 <= times.length <= 6000",
+        "times[i].length == 3",
+        "1 <= ui, vi <= n",
+        "ui != vi",
+        "0 <= wi <= 100",
+        "All pairs (ui, vi) are unique."
+      ],
+      "examples": [
+        {
+          "input": "times = [[2,1,1],[2,3,1],[3,4,1]], n = 4, k = 2",
+          "output": "2",
+          "explanation": "Signal sends from node 2: reaches node 1 and 3 in time 1, then reaches node 4 in time 2. Total time 2."
+        },
+        {
+          "input": "times = [[1,2,1]], n = 2, k = 1",
+          "output": "1",
+          "explanation": "Signal reaches node 2 in time 1."
+        },
+        {
+          "input": "times = [[1,2,1]], n = 2, k = 2",
+          "output": "-1",
+          "explanation": "Node 1 is unreachable from node 2."
+        },
+        {
+          "input": "times = [[1,2,1],[2,3,2],[1,3,4]], n = 3, k = 1",
+          "output": "3",
+          "explanation": "Path 1 -> 2 -> 3 has time 3, shorter than 1 -> 3 (4)."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number[][], number, number}\n * @return {number}\n */\nfunction networkDelayTime(times, n, k) {\n  // Optimal O(V * E) with Bellman-Ford or O(E + V log V) with Dijkstra / O(V + E)\n};\n",
+        "typescript": "function networkDelayTime(times: number[][], n: number, k: number): number {\n  // Optimal O(V * E) with Bellman-Ford or O(E + V log V) with Dijkstra / O(V + E)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def networkDelayTime(self, times: list[int], n: int, k: int) -> number:\n        # Optimal O(V * E) with Bellman-Ford or O(E + V log V) with Dijkstra\n        pass\n"
+      },
+      "optimalSolution": "function networkDelayTime(times, n, k) {\n  const dist = new Array(n + 1).fill(Infinity);\n  dist[k] = 0;\n  for (let i = 1; i < n; i++) {\n    let updated = false;\n    for (const [u, v, w] of times) {\n      if (dist[u] !== Infinity && dist[u] + w < dist[v]) {\n        dist[v] = dist[u] + w;\n        updated = true;\n      }\n    }\n    if (!updated) break;\n  }\n  let maxTime = 0;\n  for (let i = 1; i <= n; i++) {\n    if (dist[i] === Infinity) return -1;\n    if (dist[i] > maxTime) maxTime = dist[i];\n  }\n  return maxTime;\n}",
+      "optimalTimeComplexity": "O(V * E) with Bellman-Ford or O(E + V log V) with Dijkstra",
+      "optimalSpaceComplexity": "O(V + E)",
+      "suboptimalSolution": "function networkDelayTime(times, n, k) {\n  const adj = Array.from({ length: n + 1 }, () => []);\n  for (const [u, v, w] of times) adj[u].push([v, w]);\n  const dist = new Array(n + 1).fill(Infinity);\n  dist[k] = 0;\n  const queue = [[k, 0]];\n  while (queue.length > 0) {\n    queue.sort((a, b) => a[1] - b[1]);\n    const [curr, d] = queue.shift();\n    if (d > dist[curr]) continue;\n    for (const [nxt, w] of adj[curr]) {\n      if (dist[curr] + w < dist[nxt]) {\n        dist[nxt] = dist[curr] + w;\n        queue.push([nxt, dist[nxt]]);\n      }\n    }\n  }\n  const max = Math.max(...dist.slice(1));\n  return max === Infinity ? -1 : max;\n}",
+      "suboptimalTimeComplexity": "O(E * V log V)",
+      "suboptimalSpaceComplexity": "O(V + E)",
+      "commonMistakes": [
+        "Using simple BFS without accounting for non-uniform positive edge weights.",
+        "1-based vs 0-based node indexing."
+      ],
+      "hints": [
+        "This is the single-source shortest path problem on a directed graph with positive edge weights.",
+        "Dijkstra's algorithm or Bellman-Ford finds the shortest time to all nodes; return the maximum of these shortest times."
+      ],
+      "testCases": [
+        {
+          "input": "[[[2,1,1],[2,3,1],[3,4,1]],4,2]",
+          "expectedOutput": "2",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[[[1,2,1]],2,1]",
+          "expectedOutput": "1",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[[[1,2,1]],2,2]",
+          "expectedOutput": "-1",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[[[1,2,1],[2,3,2],[1,3,4]],3,1]",
+          "expectedOutput": "3",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[[[1,2,10]],2,1]",
+          "expectedOutput": "10",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[[[1,2,0],[2,3,0]],3,1]",
+          "expectedOutput": "0",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[[[2,3,1]],3,1]",
+          "expectedOutput": "-1",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[[[1,2,1],[2,1,1],[2,3,2],[3,4,1]],4,1]",
+          "expectedOutput": "4",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[[[1,2,1],[2,3,7],[1,3,3],[3,4,2],[1,4,10]],4,1]",
+          "expectedOutput": "5",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[[[3,1,5],[3,2,2],[2,1,1]],3,3]",
+          "expectedOutput": "3",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[[[1,2,1],[2,3,4],[3,4,7],[4,5,10],[5,6,3],[6,7,6],[7,8,9],[8,9,2],[9,10,5],[10,11,8],[11,12,1],[12,13,4],[13,14,7],[14,15,10],[15,16,3],[16,17,6],[17,18,9],[18,19,2],[19,20,5],[20,21,8]],21,1]",
+          "expectedOutput": "110",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=20 for complexity verification",
+          "scaleN": 20
+        },
+        {
+          "input": "[[[1,2,1],[1,3,2],[1,4,3],[1,5,4],[1,6,5],[1,7,6],[1,8,7],[1,9,8],[1,10,9],[1,11,10],[1,12,11],[1,13,12],[1,14,13],[1,15,14],[1,16,15],[1,17,16],[1,18,17],[1,19,18],[1,20,19],[1,21,20],[1,22,21],[1,23,22],[1,24,23],[1,25,24],[1,26,25],[1,27,26],[1,28,27],[1,29,28],[1,30,29],[1,31,30]],31,1]",
+          "expectedOutput": "30",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=30 for complexity verification",
+          "scaleN": 30
+        }
+      ]
+    },
+    {
+      "num": 409,
+      "title": "Cheapest Flights Within K Stops",
+      "slug": "cheapest-flights-within-k-stops",
+      "level": 20,
+      "difficulty": "MEDIUM",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 25,
+      "statement": "There are `n` cities connected by some number of flights. You are given an array `flights` where `flights[i] = [fromi, toi, pricei]` indicates that there is a flight from city `fromi` to city `toi` with cost `pricei`.\n\nYou are also given three integers `src`, `dst`, and `k`, return the cheapest price from `src` to `dst` with at most `k` stops. If there is no such route, return `-1`.",
+      "executionModel": "FUNCTION",
+      "functionName": "findCheapestPrice",
+      "parameterDefinitions": [
+        {
+          "name": "n",
+          "type": "number",
+          "description": "Number of cities (0 to n - 1)"
+        },
+        {
+          "name": "flights",
+          "type": "number[][]",
+          "description": "Array of flights [from, to, price]"
+        },
+        {
+          "name": "src",
+          "type": "number",
+          "description": "Source city"
+        },
+        {
+          "name": "dst",
+          "type": "number",
+          "description": "Destination city"
+        },
+        {
+          "name": "k",
+          "type": "number",
+          "description": "Maximum stops permitted"
+        }
+      ],
+      "returnType": "number",
+      "constraints": [
+        "1 <= n <= 100",
+        "0 <= flights.length <= (n * (n - 1) / 2)",
+        "flights[i].length == 3",
+        "0 <= fromi, toi < n",
+        "fromi != toi",
+        "1 <= pricei <= 10^4",
+        "0 <= src, dst, k < n",
+        "src != dst"
+      ],
+      "examples": [
+        {
+          "input": "n = 4, flights = [[0,1,100],[1,2,100],[2,0,100],[1,3,600],[2,3,200]], src = 0, dst = 3, k = 1",
+          "output": "700",
+          "explanation": "Path 0 -> 1 -> 3 has 1 stop with cost 100 + 600 = 700. (Path 0 -> 1 -> 2 -> 3 has 2 stops)."
+        },
+        {
+          "input": "n = 3, flights = [[0,1,100],[1,2,100],[0,2,500]], src = 0, dst = 2, k = 1",
+          "output": "200",
+          "explanation": "Path 0 -> 1 -> 2 has 1 stop with cost 200."
+        },
+        {
+          "input": "n = 3, flights = [[0,1,100],[1,2,100],[0,2,500]], src = 0, dst = 2, k = 0",
+          "output": "500",
+          "explanation": "Direct flight 0 -> 2 with 0 stops costs 500."
+        },
+        {
+          "input": "n = 2, flights = [[0,1,100]], src = 0, dst = 1, k = 0",
+          "output": "100",
+          "explanation": "Direct flight costs 100."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number, number[][], number, number, number}\n * @return {number}\n */\nfunction findCheapestPrice(n, flights, src, dst, k) {\n  // Optimal O(K * E) / O(V)\n};\n",
+        "typescript": "function findCheapestPrice(n: number, flights: number[][], src: number, dst: number, k: number): number {\n  // Optimal O(K * E) / O(V)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def findCheapestPrice(self, n: int, flights: list[int], src: int, dst: int, k: int) -> number:\n        # Optimal O(K * E)\n        pass\n"
+      },
+      "optimalSolution": "function findCheapestPrice(n, flights, src, dst, k) {\n  let prices = new Array(n).fill(Infinity);\n  prices[src] = 0;\n  for (let i = 0; i <= k; i++) {\n    const temp = [...prices];\n    for (const [u, v, p] of flights) {\n      if (prices[u] === Infinity) continue;\n      if (prices[u] + p < temp[v]) {\n        temp[v] = prices[u] + p;\n      }\n    }\n    prices = temp;\n  }\n  return prices[dst] === Infinity ? -1 : prices[dst];\n}",
+      "optimalTimeComplexity": "O(K * E)",
+      "optimalSpaceComplexity": "O(V)",
+      "suboptimalSolution": "function findCheapestPrice(n, flights, src, dst, k) {\n  const adj = Array.from({ length: n }, () => []);\n  for (const [u, v, p] of flights) adj[u].push([v, p]);\n  const queue = [[src, 0, 0]];\n  const minCost = new Array(n).fill(Infinity);\n  minCost[src] = 0;\n  while (queue.length > 0) {\n    const [node, cost, stops] = queue.shift();\n    if (stops > k) continue;\n    for (const [nxt, price] of adj[node]) {\n      if (cost + price < minCost[nxt]) {\n        minCost[nxt] = cost + price;\n        queue.push([nxt, cost + price, stops + 1]);\n      }\n    }\n  }\n  return minCost[dst] === Infinity ? -1 : minCost[dst];\n}",
+      "suboptimalTimeComplexity": "O(E * K)",
+      "suboptimalSpaceComplexity": "O(V * K)",
+      "commonMistakes": [
+        "Updating prices in-place during the same iteration, allowing paths with more than 1 flight per iteration (breaking the k-stop constraint)."
+      ],
+      "hints": [
+        "Run Bellman-Ford for exactly k + 1 iterations.",
+        "Always read from a copy of the previous iteration's distances to ensure at most 1 edge is traversed per step."
+      ],
+      "testCases": [
+        {
+          "input": "[4,[[0,1,100],[1,2,100],[2,0,100],[1,3,600],[2,3,200]],0,3,1]",
+          "expectedOutput": "700",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[3,[[0,1,100],[1,2,100],[0,2,500]],0,2,1]",
+          "expectedOutput": "200",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[3,[[0,1,100],[1,2,100],[0,2,500]],0,2,0]",
+          "expectedOutput": "500",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[2,[[0,1,100]],0,1,0]",
+          "expectedOutput": "100",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[2,[],0,1,1]",
+          "expectedOutput": "-1",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[3,[[0,1,50]],0,2,2]",
+          "expectedOutput": "-1",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[4,[[0,1,10],[1,2,10],[2,3,10]],0,3,1]",
+          "expectedOutput": "-1",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[5,[[0,1,100],[1,2,100],[2,3,100],[3,4,100],[0,4,1000]],0,4,2]",
+          "expectedOutput": "1000",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[4,[[0,1,1],[0,2,5],[1,2,1],[2,3,1]],0,3,1]",
+          "expectedOutput": "6",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[3,[[0,1,100],[1,2,200]],0,2,0]",
+          "expectedOutput": "-1",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[20,[[0,1,10],[1,2,10],[2,3,10],[3,4,10],[4,5,10],[5,6,10],[6,7,10],[7,8,10],[8,9,10],[9,10,10],[10,11,10],[11,12,10],[12,13,10],[13,14,10],[14,15,10],[15,16,10],[16,17,10],[17,18,10],[18,19,10]],0,19,10]",
+          "expectedOutput": "-1",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=1000 for complexity verification",
+          "scaleN": 1000
+        },
+        {
+          "input": "[25,[[0,1,5],[1,2,5],[2,3,5],[3,4,5],[4,5,5],[5,6,5],[6,7,5],[7,8,5],[8,9,5],[9,10,5],[10,11,5],[11,12,5],[12,13,5],[13,14,5],[14,15,5],[15,16,5],[16,17,5],[17,18,5],[18,19,5],[19,20,5],[20,21,5],[21,22,5],[22,23,5],[23,24,5]],0,24,25]",
+          "expectedOutput": "120",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=1000 for complexity verification",
+          "scaleN": 1000
+        }
+      ]
+    },
+    {
+      "num": 410,
+      "title": "Path With Minimum Effort",
+      "slug": "path-with-minimum-effort",
+      "level": 20,
+      "difficulty": "MEDIUM",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 25,
+      "statement": "You are a hiker preparing for an upcoming hike. You are given `heights`, a 2D array of size `rows x columns`, where `heights[row][col]` represents the height of cell `(row, col)`. You are situated in the top-left cell, `(0, 0)`, and you hope to travel to the bottom-right cell, `(rows-1, columns-1)` (i.e., 0-indexed). You can move up, down, left, or right, and you wish to find a route that requires the minimum effort.\n\nA route's effort is the maximum absolute difference in heights between two consecutive cells of the route.\n\nReturn the minimum effort required to travel from the top-left cell to the bottom-right cell.",
+      "executionModel": "FUNCTION",
+      "functionName": "minimumEffortPath",
+      "parameterDefinitions": [
+        {
+          "name": "heights",
+          "type": "number[][]",
+          "description": "rows x columns grid of heights"
+        }
+      ],
+      "returnType": "number",
+      "constraints": [
+        "rows == heights.length",
+        "columns == heights[i].length",
+        "1 <= rows, columns <= 100",
+        "1 <= heights[i][j] <= 10^6"
+      ],
+      "examples": [
+        {
+          "input": "heights = [[1,2,2],[3,8,2],[5,3,5]]",
+          "output": "2",
+          "explanation": "Route [1,2,2,2,5] has maximum absolute difference 2 in consecutive cells."
+        },
+        {
+          "input": "heights = [[1,2,3],[3,8,4],[5,3,5]]",
+          "output": "1",
+          "explanation": "Route [1,2,3,4,5] has maximum absolute difference 1."
+        },
+        {
+          "input": "heights = [[1,2,1,1,1],[1,2,1,2,1],[1,2,1,2,1],[1,2,1,2,1],[1,1,1,2,1]]",
+          "output": "0",
+          "explanation": "Route through the 1s has absolute difference 0."
+        },
+        {
+          "input": "heights = [[3]]",
+          "output": "0",
+          "explanation": "Already at the destination."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number[][]}\n * @return {number}\n */\nfunction minimumEffortPath(heights) {\n  // Optimal O(R * C log(R * C)) / O(R * C)\n};\n",
+        "typescript": "function minimumEffortPath(heights: number[][]): number {\n  // Optimal O(R * C log(R * C)) / O(R * C)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def minimumEffortPath(self, heights: list[int]) -> number:\n        # Optimal O(R * C log(R * C))\n        pass\n"
+      },
+      "optimalSolution": "function minimumEffortPath(heights) {\n  const R = heights.length, C = heights[0].length;\n  const dist = Array.from({ length: R }, () => new Array(C).fill(Infinity));\n  dist[0][0] = 0;\n  const queue = [[0, 0, 0]];\n  const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];\n  while (queue.length > 0) {\n    queue.sort((a, b) => a[0] - b[0]);\n    const [effort, r, c] = queue.shift();\n    if (r === R - 1 && c === C - 1) return effort;\n    if (effort > dist[r][c]) continue;\n    for (const [dr, dc] of dirs) {\n      const nr = r + dr, nc = c + dc;\n      if (nr >= 0 && nr < R && nc >= 0 && nc < C) {\n        const nextEffort = Math.max(effort, Math.abs(heights[nr][nc] - heights[r][c]));\n        if (nextEffort < dist[nr][nc]) {\n          dist[nr][nc] = nextEffort;\n          queue.push([nextEffort, nr, nc]);\n        }\n      }\n    }\n  }\n  return dist[R - 1][C - 1];\n}",
+      "optimalTimeComplexity": "O(R * C log(R * C))",
+      "optimalSpaceComplexity": "O(R * C)",
+      "suboptimalSolution": "function minimumEffortPath(heights) {\n  const R = heights.length, C = heights[0].length;\n  let low = 0, high = 1000000, ans = 0;\n  function canReach(maxDiff) {\n    const visited = Array.from({ length: R }, () => new Array(C).fill(false));\n    const q = [[0, 0]];\n    visited[0][0] = true;\n    const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];\n    while (q.length > 0) {\n      const [r, c] = q.shift();\n      if (r === R - 1 && c === C - 1) return true;\n      for (const [dr, dc] of dirs) {\n        const nr = r + dr, nc = c + dc;\n        if (nr >= 0 && nr < R && nc >= 0 && nc < C && !visited[nr][nc]) {\n          if (Math.abs(heights[nr][nc] - heights[r][c]) <= maxDiff) {\n            visited[nr][nc] = true;\n            q.push([nr, nc]);\n          }\n        }\n      }\n    }\n    return false;\n  }\n  while (low <= high) {\n    const mid = Math.floor((low + high) / 2);\n    if (canReach(mid)) {\n      ans = mid;\n      high = mid - 1;\n    } else {\n      low = mid + 1;\n    }\n  }\n  return ans;\n}",
+      "suboptimalTimeComplexity": "O(R * C * log(maxHeight))",
+      "suboptimalSpaceComplexity": "O(R * C)",
+      "commonMistakes": [
+        "Summing the differences along the route instead of finding the maximum difference along the route."
+      ],
+      "hints": [
+        "This is a modified Dijkstra where edge weights represent max(effort, abs(h2 - h1)).",
+        "Binary search on the answer + BFS is also an optimal alternative."
+      ],
+      "testCases": [
+        {
+          "input": "[[[1,2,2],[3,8,2],[5,3,5]]]",
+          "expectedOutput": "2",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[[[1,2,3],[3,8,4],[5,3,5]]]",
+          "expectedOutput": "1",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[[[1,2,1,1,1],[1,2,1,2,1],[1,2,1,2,1],[1,2,1,2,1],[1,1,1,2,1]]]",
+          "expectedOutput": "0",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[[[3]]]",
+          "expectedOutput": "0",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[[[1,1],[1,1]]]",
+          "expectedOutput": "0",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[[[1,1000000]]]",
+          "expectedOutput": "999999",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[[[1],[5],[10]]]",
+          "expectedOutput": "5",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[[[7,7,7],[7,1,7],[7,7,7]]]",
+          "expectedOutput": "0",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[[[1,10,1],[1,10,1],[1,1,1]]]",
+          "expectedOutput": "0",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[[[4,3,2],[5,4,3],[6,5,4]]]",
+          "expectedOutput": "1",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29],[0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,0,2,4,6,8],[0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,1,4,7,10,13,16,19,22,25,28,31,34,37],[0,4,8,12,16,20,24,28,32,36,40,44,48,2,6,10,14,18,22,26,30,34,38,42,46,0,4,8,12,16],[0,5,10,15,20,25,30,35,40,45,0,5,10,15,20,25,30,35,40,45,0,5,10,15,20,25,30,35,40,45],[0,6,12,18,24,30,36,42,48,4,10,16,22,28,34,40,46,2,8,14,20,26,32,38,44,0,6,12,18,24],[0,7,14,21,28,35,42,49,6,13,20,27,34,41,48,5,12,19,26,33,40,47,4,11,18,25,32,39,46,3],[0,8,16,24,32,40,48,6,14,22,30,38,46,4,12,20,28,36,44,2,10,18,26,34,42,0,8,16,24,32],[0,9,18,27,36,45,4,13,22,31,40,49,8,17,26,35,44,3,12,21,30,39,48,7,16,25,34,43,2,11],[0,10,20,30,40,0,10,20,30,40,0,10,20,30,40,0,10,20,30,40,0,10,20,30,40,0,10,20,30,40],[0,11,22,33,44,5,16,27,38,49,10,21,32,43,4,15,26,37,48,9,20,31,42,3,14,25,36,47,8,19],[0,12,24,36,48,10,22,34,46,8,20,32,44,6,18,30,42,4,16,28,40,2,14,26,38,0,12,24,36,48],[0,13,26,39,2,15,28,41,4,17,30,43,6,19,32,45,8,21,34,47,10,23,36,49,12,25,38,1,14,27],[0,14,28,42,6,20,34,48,12,26,40,4,18,32,46,10,24,38,2,16,30,44,8,22,36,0,14,28,42,6],[0,15,30,45,10,25,40,5,20,35,0,15,30,45,10,25,40,5,20,35,0,15,30,45,10,25,40,5,20,35],[0,16,32,48,14,30,46,12,28,44,10,26,42,8,24,40,6,22,38,4,20,36,2,18,34,0,16,32,48,14],[0,17,34,1,18,35,2,19,36,3,20,37,4,21,38,5,22,39,6,23,40,7,24,41,8,25,42,9,26,43],[0,18,36,4,22,40,8,26,44,12,30,48,16,34,2,20,38,6,24,42,10,28,46,14,32,0,18,36,4,22],[0,19,38,7,26,45,14,33,2,21,40,9,28,47,16,35,4,23,42,11,30,49,18,37,6,25,44,13,32,1],[0,20,40,10,30,0,20,40,10,30,0,20,40,10,30,0,20,40,10,30,0,20,40,10,30,0,20,40,10,30],[0,21,42,13,34,5,26,47,18,39,10,31,2,23,44,15,36,7,28,49,20,41,12,33,4,25,46,17,38,9],[0,22,44,16,38,10,32,4,26,48,20,42,14,36,8,30,2,24,46,18,40,12,34,6,28,0,22,44,16,38],[0,23,46,19,42,15,38,11,34,7,30,3,26,49,22,45,18,41,14,37,10,33,6,29,2,25,48,21,44,17],[0,24,48,22,46,20,44,18,42,16,40,14,38,12,36,10,34,8,32,6,30,4,28,2,26,0,24,48,22,46],[0,25,0,25,0,25,0,25,0,25,0,25,0,25,0,25,0,25,0,25,0,25,0,25,0,25,0,25,0,25],[0,26,2,28,4,30,6,32,8,34,10,36,12,38,14,40,16,42,18,44,20,46,22,48,24,0,26,2,28,4],[0,27,4,31,8,35,12,39,16,43,20,47,24,1,28,5,32,9,36,13,40,17,44,21,48,25,2,29,6,33],[0,28,6,34,12,40,18,46,24,2,30,8,36,14,42,20,48,26,4,32,10,38,16,44,22,0,28,6,34,12],[0,29,8,37,16,45,24,3,32,11,40,19,48,27,6,35,14,43,22,1,30,9,38,17,46,25,4,33,12,41]]]",
+          "expectedOutput": "29",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=30 for complexity verification",
+          "scaleN": 30
+        },
+        {
+          "input": "[[[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10]]]",
+          "expectedOutput": "0",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=35 for complexity verification",
+          "scaleN": 35
+        }
+      ]
+    },
+    {
+      "num": 411,
+      "title": "Minimum Cost to Make at Least One Valid Path in a Grid",
+      "slug": "minimum-cost-to-make-at-least-one-valid-path-in-a-grid",
+      "level": 20,
+      "difficulty": "HARD",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 30,
+      "statement": "Given an `m x n` grid. Each cell of the grid has a sign pointing to the next cell you should visit if you are currently in this cell. The sign of `grid[i][j]` can be:\n- 1 which means go to the cell to the right. (i.e go from grid[i][j] to grid[i][j + 1])\n- 2 which means go to the cell to the left. (i.e go from grid[i][j] to grid[i][j - 1])\n- 3 which means go to the lower cell. (i.e go from grid[i][j] to grid[i + 1][j])\n- 4 which means go to the upper cell. (i.e go from grid[i][j] to grid[i - 1][j])\n\nNotice that there could be some signs on the cells pointing to outside the grid.\n\nYou will initially start at the upper left cell `(0, 0)`. A valid path in the grid is a path which starts from the upper left cell and ends at the bottom-right cell `(m - 1, n - 1)` following the signs on the cells. The valid path does not have to be the shortest.\n\nYou can modify the sign on a cell with `cost = 1`. You can modify the sign on a cell one time only.\n\nReturn the minimum cost to make at least one valid path in the grid.",
+      "executionModel": "FUNCTION",
+      "functionName": "minCost",
+      "parameterDefinitions": [
+        {
+          "name": "grid",
+          "type": "number[][]",
+          "description": "m x n grid with direction signs 1, 2, 3, 4"
+        }
+      ],
+      "returnType": "number",
+      "constraints": [
+        "m == grid.length",
+        "n == grid[i].length",
+        "1 <= m, n <= 100",
+        "1 <= grid[i][j] <= 4"
+      ],
+      "examples": [
+        {
+          "input": "grid = [[1,1,1,1],[2,2,2,2],[1,1,1,1],[2,2,2,2]]",
+          "output": "3",
+          "explanation": "Changing signs at (0,3), (1,0), (2,3) gives a valid path with cost 3."
+        },
+        {
+          "input": "grid = [[1,1,3],[3,2,2],[1,1,4]]",
+          "output": "0",
+          "explanation": "You can follow the arrows without changing any sign, cost 0."
+        },
+        {
+          "input": "grid = [[1,2],[4,3]]",
+          "output": "1",
+          "explanation": "Change grid[0][0] from 1 to 3, cost 1."
+        },
+        {
+          "input": "grid = [[2,2,2],[2,2,2],[2,2,2]]",
+          "output": "4",
+          "explanation": "4 turns needed to traverse downward to bottom right."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number[][]}\n * @return {number}\n */\nfunction minCost(grid) {\n  // Optimal O(m * n) with 0-1 BFS / O(m * n)\n};\n",
+        "typescript": "function minCost(grid: number[][]): number {\n  // Optimal O(m * n) with 0-1 BFS / O(m * n)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def minCost(self, grid: list[int]) -> number:\n        # Optimal O(m * n) with 0-1 BFS\n        pass\n"
+      },
+      "optimalSolution": "function minCost(grid) {\n  const m = grid.length, n = grid[0].length;\n  const dist = Array.from({ length: m }, () => new Array(n).fill(Infinity));\n  dist[0][0] = 0;\n  const deque = [[0, 0]];\n  const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];\n  while (deque.length > 0) {\n    const [r, c] = deque.shift();\n    const d = dist[r][c];\n    if (r === m - 1 && c === n - 1) return d;\n    for (let i = 0; i < 4; i++) {\n      const [dr, dc] = dirs[i];\n      const nr = r + dr, nc = c + dc;\n      if (nr >= 0 && nr < m && nc >= 0 && nc < n) {\n        const cost = grid[r][c] === i + 1 ? 0 : 1;\n        if (d + cost < dist[nr][nc]) {\n          dist[nr][nc] = d + cost;\n          if (cost === 0) deque.unshift([nr, nc]);\n          else deque.push([nr, nc]);\n        }\n      }\n    }\n  }\n  return dist[m - 1][n - 1];\n}",
+      "optimalTimeComplexity": "O(m * n) with 0-1 BFS",
+      "optimalSpaceComplexity": "O(m * n)",
+      "suboptimalSolution": "function minCost(grid) {\n  const m = grid.length, n = grid[0].length;\n  const dist = Array.from({ length: m }, () => new Array(n).fill(Infinity));\n  dist[0][0] = 0;\n  const pq = [[0, 0, 0]];\n  const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];\n  while (pq.length > 0) {\n    pq.sort((a, b) => a[0] - b[0]);\n    const [cost, r, c] = pq.shift();\n    if (cost > dist[r][c]) continue;\n    for (let i = 0; i < 4; i++) {\n      const [dr, dc] = dirs[i];\n      const nr = r + dr, nc = c + dc;\n      if (nr >= 0 && nr < m && nc >= 0 && nc < n) {\n        const edgeCost = grid[r][c] === i + 1 ? 0 : 1;\n        if (cost + edgeCost < dist[nr][nc]) {\n          dist[nr][nc] = cost + edgeCost;\n          pq.push([dist[nr][nc], nr, nc]);\n        }\n      }\n    }\n  }\n  return dist[m - 1][n - 1];\n}",
+      "suboptimalTimeComplexity": "O(m * n log(m * n))",
+      "suboptimalSpaceComplexity": "O(m * n)",
+      "commonMistakes": [
+        "Using standard FIFO queue instead of 0-1 BFS deque or priority queue."
+      ],
+      "hints": [
+        "Every edge has weight 0 (if moving in existing arrow direction) or 1 (if modifying arrow).",
+        "0-1 BFS with unshift for weight 0 and push for weight 1 solves this in linear O(m * n) time."
+      ],
+      "testCases": [
+        {
+          "input": "[[[1,1,1,1],[2,2,2,2],[1,1,1,1],[2,2,2,2]]]",
+          "expectedOutput": "3",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[[[1,1,3],[3,2,2],[1,1,4]]]",
+          "expectedOutput": "0",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[[[1,2],[4,3]]]",
+          "expectedOutput": "1",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[[[2,2,2],[2,2,2],[2,2,2]]]",
+          "expectedOutput": "4",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[[[1]]]",
+          "expectedOutput": "0",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[[[1,1]]]",
+          "expectedOutput": "0",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[[[3],[3]]]",
+          "expectedOutput": "0",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[[[4,4,4],[4,4,4],[4,4,4]]]",
+          "expectedOutput": "4",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[[[1,3],[2,2]]]",
+          "expectedOutput": "0",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[[[1,1,1],[3,3,3],[2,2,2]]]",
+          "expectedOutput": "1",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[[[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]]]",
+          "expectedOutput": "29",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=30 for complexity verification",
+          "scaleN": 30
+        },
+        {
+          "input": "[[[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1]]]",
+          "expectedOutput": "34",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=35 for complexity verification",
+          "scaleN": 35
+        }
+      ]
+    },
+    {
+      "num": 412,
+      "title": "Reconstruct Itinerary",
+      "slug": "reconstruct-itinerary",
+      "level": 20,
+      "difficulty": "HARD",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 30,
+      "statement": "You are given a list of airline `tickets` where `tickets[i] = [fromi, toi]` represent the departure and the arrival airports of one flight. Reconstruct the itinerary in order and return it.\n\nAll of the tickets belong to a man who departs from `\"JFK\"`, thus, the itinerary must begin with `\"JFK\"`. If there are multiple valid itineraries, you should return the itinerary that has the smallest lexical order when read as a single string.\n- For example, the itinerary [\"JFK\", \"LGA\"] has a smaller lexical order than [\"JFK\", \"LGB\"].\n\nYou may assume all tickets form at least one valid itinerary. You must use all the tickets once and only once.",
+      "executionModel": "FUNCTION",
+      "functionName": "findItinerary",
+      "parameterDefinitions": [
+        {
+          "name": "tickets",
+          "type": "string[][]",
+          "description": "Array of [from, to] flight tickets"
+        }
+      ],
+      "returnType": "string[]",
+      "constraints": [
+        "1 <= tickets.length <= 300",
+        "tickets[i].length == 2",
+        "fromi.length == 3",
+        "toi.length == 3",
+        "fromi and toi consist of uppercase English letters.",
+        "fromi != toi"
+      ],
+      "examples": [
+        {
+          "input": "tickets = [[\"MUC\",\"LHR\"],[\"JFK\",\"MUC\"],[\"SFO\",\"SJC\"],[\"LHR\",\"SFO\"]]",
+          "output": "[\"JFK\",\"MUC\",\"LHR\",\"SFO\",\"SJC\"]",
+          "explanation": "All tickets used sequentially in valid order."
+        },
+        {
+          "input": "tickets = [[\"JFK\",\"SFO\"],[\"JFK\",\"ATL\"],[\"SFO\",\"ATL\"],[\"ATL\",\"JFK\"],[\"ATL\",\"SFO\"]]",
+          "output": "[\"JFK\",\"ATL\",\"JFK\",\"SFO\",\"ATL\",\"SFO\"]",
+          "explanation": "Another possible reconstruction is [\"JFK\",\"SFO\",\"ATL\",\"JFK\",\"ATL\",\"SFO\"], but it is larger lexically."
+        },
+        {
+          "input": "tickets = [[\"JFK\",\"KUL\"],[\"JFK\",\"NRT\"],[\"NRT\",\"JFK\"]]",
+          "output": "[\"JFK\",\"NRT\",\"JFK\",\"KUL\"]",
+          "explanation": "Visiting NRT first prevents getting stuck at KUL early."
+        },
+        {
+          "input": "tickets = [[\"JFK\",\"AAA\"],[\"AAA\",\"JFK\"]]",
+          "output": "[\"JFK\",\"AAA\",\"JFK\"]",
+          "explanation": "Simple cycle."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {string[][]}\n * @return {string[]}\n */\nfunction findItinerary(tickets) {\n  // Optimal O(E log E) with Hierholzer's Algorithm / O(V + E)\n};\n",
+        "typescript": "function findItinerary(tickets: string[][]): string[] {\n  // Optimal O(E log E) with Hierholzer's Algorithm / O(V + E)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def findItinerary(self, tickets: list[str]) -> string[]:\n        # Optimal O(E log E) with Hierholzer's Algorithm\n        pass\n"
+      },
+      "optimalSolution": "function findItinerary(tickets) {\n  const adj = new Map();\n  for (const [from, to] of tickets) {\n    if (!adj.has(from)) adj.set(from, []);\n    adj.get(from).push(to);\n  }\n  for (const list of adj.values()) {\n    list.sort();\n  }\n  const route = [];\n  function dfs(airport) {\n    const dests = adj.get(airport);\n    while (dests && dests.length > 0) {\n      const nxt = dests.shift();\n      dfs(nxt);\n    }\n    route.push(airport);\n  }\n  dfs(\"JFK\");\n  return route.reverse();\n}",
+      "optimalTimeComplexity": "O(E log E) with Hierholzer's Algorithm",
+      "optimalSpaceComplexity": "O(V + E)",
+      "suboptimalSolution": "function findItinerary(tickets) {\n  tickets.sort((a, b) => a[1].localeCompare(b[1]));\n  const used = new Array(tickets.length).fill(false);\n  let res = null;\n  function backtrack(curr, path) {\n    if (path.length === tickets.length + 1) {\n      res = [...path];\n      return true;\n    }\n    for (let i = 0; i < tickets.length; i++) {\n      if (!used[i] && tickets[i][0] === curr) {\n        used[i] = true;\n        path.push(tickets[i][1]);\n        if (backtrack(tickets[i][1], path)) return true;\n        path.pop();\n        used[i] = false;\n      }\n    }\n    return false;\n  }\n  backtrack(\"JFK\", [\"JFK\"]);\n  return res;\n}",
+      "suboptimalTimeComplexity": "O(E!)",
+      "suboptimalSpaceComplexity": "O(E)",
+      "commonMistakes": [
+        "Greedy DFS without post-order insertion (gets stuck in a dead-end before visiting sub-cycles)."
+      ],
+      "hints": [
+        "This is finding an Eulerian path on a directed graph.",
+        "Sort neighbor lists lexically, and use Hierholzer's post-order DFS to collect nodes, then reverse the result."
+      ],
+      "testCases": [
+        {
+          "input": "[[[\"MUC\",\"LHR\"],[\"JFK\",\"MUC\"],[\"SFO\",\"SJC\"],[\"LHR\",\"SFO\"]]]",
+          "expectedOutput": "[\"JFK\",\"MUC\",\"LHR\",\"SFO\",\"SJC\"]",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[[[\"JFK\",\"SFO\"],[\"JFK\",\"ATL\"],[\"SFO\",\"ATL\"],[\"ATL\",\"JFK\"],[\"ATL\",\"SFO\"]]]",
+          "expectedOutput": "[\"JFK\",\"ATL\",\"JFK\",\"SFO\",\"ATL\",\"SFO\"]",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[[[\"JFK\",\"KUL\"],[\"JFK\",\"NRT\"],[\"NRT\",\"JFK\"]]]",
+          "expectedOutput": "[\"JFK\",\"NRT\",\"JFK\",\"KUL\"]",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[[[\"JFK\",\"AAA\"],[\"AAA\",\"JFK\"]]]",
+          "expectedOutput": "[\"JFK\",\"AAA\",\"JFK\"]",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[[[\"JFK\",\"ORD\"]]]",
+          "expectedOutput": "[\"JFK\",\"ORD\"]",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[[[\"JFK\",\"A\"],[\"A\",\"B\"],[\"B\",\"JFK\"]]]",
+          "expectedOutput": "[\"JFK\",\"A\",\"B\",\"JFK\"]",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[[[\"JFK\",\"B\"],[\"B\",\"JFK\"],[\"JFK\",\"A\"],[\"A\",\"JFK\"]]]",
+          "expectedOutput": "[\"JFK\",\"A\",\"JFK\",\"B\",\"JFK\"]",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[[[\"JFK\",\"ANU\"],[\"ANU\",\"JFK\"],[\"JFK\",\"EZE\"]]]",
+          "expectedOutput": "[\"JFK\",\"ANU\",\"JFK\",\"EZE\"]",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[[[\"JFK\",\"A\"],[\"A\",\"B\"],[\"B\",\"C\"],[\"C\",\"A\"],[\"A\",\"D\"],[\"D\",\"JFK\"]]]",
+          "expectedOutput": "[\"JFK\",\"A\",\"B\",\"C\",\"A\",\"D\",\"JFK\"]",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[[[\"JFK\",\"KUL\"],[\"JFK\",\"NRT\"],[\"NRT\",\"JFK\"],[\"KUL\",\"BKK\"],[\"BKK\",\"JFK\"]]]",
+          "expectedOutput": "[\"JFK\",\"KUL\",\"BKK\",\"JFK\",\"NRT\",\"JFK\"]",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[[[\"JFK\",\"A\"],[\"A\",\"JFK\"],[\"JFK\",\"B\"],[\"B\",\"JFK\"],[\"JFK\",\"C\"],[\"C\",\"JFK\"],[\"JFK\",\"D\"],[\"D\",\"JFK\"]]]",
+          "expectedOutput": "[\"JFK\",\"A\",\"JFK\",\"B\",\"JFK\",\"C\",\"JFK\",\"D\",\"JFK\"]",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=8 for complexity verification",
+          "scaleN": 8
+        },
+        {
+          "input": "[[[\"JFK\",\"Z\"],[\"Z\",\"Y\"],[\"Y\",\"X\"],[\"X\",\"W\"],[\"W\",\"V\"],[\"V\",\"U\"]]]",
+          "expectedOutput": "[\"JFK\",\"Z\",\"Y\",\"X\",\"W\",\"V\",\"U\"]",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=6 for complexity verification",
+          "scaleN": 6
+        }
+      ]
+    },
+    {
+      "num": 413,
+      "title": "Critical Connections in a Network",
+      "slug": "critical-connections-in-a-network",
+      "level": 20,
+      "difficulty": "HARD",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 35,
+      "statement": "There are `n` servers numbered from `0` to `n - 1` connected by undirected server-to-server `connections` forming a network where `connections[i] = [ai, bi]` represents a connection between servers `ai` and `bi`. Any server can reach other servers directly or indirectly through the network.\n\nA critical connection is a connection that, if removed, will make some servers unable to reach some other server.\n\nReturn all critical connections in the network in any order.",
+      "executionModel": "FUNCTION",
+      "functionName": "criticalConnections",
+      "parameterDefinitions": [
+        {
+          "name": "n",
+          "type": "number",
+          "description": "Number of servers"
+        },
+        {
+          "name": "connections",
+          "type": "number[][]",
+          "description": "List of undirected connections [a, b]"
+        }
+      ],
+      "returnType": "number[][]",
+      "constraints": [
+        "2 <= n <= 10^5",
+        "n - 1 <= connections.length <= 10^5",
+        "0 <= ai, bi <= n - 1",
+        "ai != bi",
+        "There are no repeated connections."
+      ],
+      "examples": [
+        {
+          "input": "n = 4, connections = [[0,1],[1,2],[2,0],[1,3]]",
+          "output": "[[1,3]]",
+          "explanation": "[[3,1]] is also accepted. Removing [1,3] disconnects server 3."
+        },
+        {
+          "input": "n = 2, connections = [[0,1]]",
+          "output": "[[0,1]]",
+          "explanation": "Single connection is critical."
+        },
+        {
+          "input": "n = 3, connections = [[0,1],[1,2],[2,0]]",
+          "output": "[]",
+          "explanation": "Simple 3-cycle contains no bridges."
+        },
+        {
+          "input": "n = 5, connections = [[0,1],[1,2],[2,0],[1,3],[3,4]]",
+          "output": "[[1,3],[3,4]]",
+          "explanation": "Connections [1,3] and [3,4] are bridges."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number, number[][]}\n * @return {number[][]}\n */\nfunction criticalConnections(n, connections) {\n  // Optimal O(V + E) using Tarjan's Bridge-Finding Algorithm / O(V + E)\n};\n",
+        "typescript": "function criticalConnections(n: number, connections: number[][]): number[][] {\n  // Optimal O(V + E) using Tarjan's Bridge-Finding Algorithm / O(V + E)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def criticalConnections(self, n: int, connections: list[int]) -> number[][]:\n        # Optimal O(V + E) using Tarjan's Bridge-Finding Algorithm\n        pass\n"
+      },
+      "optimalSolution": "function criticalConnections(n, connections) {\n  const adj = Array.from({ length: n }, () => []);\n  for (const [u, v] of connections) {\n    adj[u].push(v);\n    adj[v].push(u);\n  }\n  const tin = new Array(n).fill(-1);\n  const low = new Array(n).fill(-1);\n  let timer = 0;\n  const bridges = [];\n  function dfs(v, p) {\n    tin[v] = low[v] = timer++;\n    for (const to of adj[v]) {\n      if (to === p) continue;\n      if (tin[to] !== -1) {\n        low[v] = Math.min(low[v], tin[to]);\n      } else {\n        dfs(to, v);\n        low[v] = Math.min(low[v], low[to]);\n        if (low[to] > tin[v]) {\n          bridges.push(v < to ? [v, to] : [to, v]);\n        }\n      }\n    }\n  }\n  dfs(0, -1);\n  return bridges.sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]);\n}",
+      "optimalTimeComplexity": "O(V + E) using Tarjan's Bridge-Finding Algorithm",
+      "optimalSpaceComplexity": "O(V + E)",
+      "suboptimalSolution": "function criticalConnections(n, connections) {\n  const adj = Array.from({ length: n }, () => []);\n  for (const [u, v] of connections) {\n    adj[u].push(v);\n    adj[v].push(u);\n  }\n  const tin = new Array(n).fill(-1);\n  const low = new Array(n).fill(-1);\n  let timer = 0;\n  const bridges = [];\n  function dfs(v, p) {\n    tin[v] = low[v] = timer++;\n    for (const to of adj[v]) {\n      if (to === p) continue;\n      if (tin[to] !== -1) {\n        low[v] = Math.min(low[v], tin[to]);\n      } else {\n        dfs(to, v);\n        low[v] = Math.min(low[v], low[to]);\n        if (low[to] > tin[v]) {\n          bridges.push(v < to ? [v, to] : [to, v]);\n        }\n      }\n    }\n  }\n  dfs(0, -1);\n  return bridges.sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]);\n}",
+      "suboptimalTimeComplexity": "O(V + E)",
+      "suboptimalSpaceComplexity": "O(V + E)",
+      "commonMistakes": [
+        "Trying O(E * (V + E)) by removing one edge at a time and running BFS (times out on 10^5 edges)."
+      ],
+      "hints": [
+        "A critical connection is a bridge in an undirected graph.",
+        "Use Tarjan's DFS algorithm tracking discovery time `tin[u]` and lowest reachable time `low[u]`.",
+        "Edge (u, v) is a bridge if low[v] > tin[u]."
+      ],
+      "testCases": [
+        {
+          "input": "[4,[[0,1],[1,2],[2,0],[1,3]]]",
+          "expectedOutput": "[[1,3]]",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[2,[[0,1]]]",
+          "expectedOutput": "[[0,1]]",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[3,[[0,1],[1,2],[2,0]]]",
+          "expectedOutput": "[]",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[5,[[0,1],[1,2],[2,0],[1,3],[3,4]]]",
+          "expectedOutput": "[[1,3],[3,4]]",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[3,[[0,1],[1,2]]]",
+          "expectedOutput": "[[0,1],[1,2]]",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[4,[[0,1],[1,2],[2,3]]]",
+          "expectedOutput": "[[0,1],[1,2],[2,3]]",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[4,[[0,1],[1,2],[2,3],[3,0]]]",
+          "expectedOutput": "[]",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[6,[[0,1],[1,2],[2,0],[1,3],[3,4],[4,5],[5,3]]]",
+          "expectedOutput": "[[1,3]]",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[5,[[0,1],[1,2],[2,3],[3,4],[4,2]]]",
+          "expectedOutput": "[[0,1],[1,2]]",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[4,[[0,1],[2,3],[1,2]]]",
+          "expectedOutput": "[[0,1],[1,2],[2,3]]",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[30,[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19],[19,20],[20,21],[21,22],[22,23],[23,24],[24,25],[25,26],[26,27],[27,28],[28,29]]]",
+          "expectedOutput": "[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19],[19,20],[20,21],[21,22],[22,23],[23,24],[24,25],[25,26],[26,27],[27,28],[28,29]]",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=1000 for complexity verification",
+          "scaleN": 1000
+        },
+        {
+          "input": "[50,[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19],[19,20],[20,21],[21,22],[22,23],[23,24],[24,25],[25,26],[26,27],[27,28],[28,29],[29,30],[30,31],[31,32],[32,33],[33,34],[34,35],[35,36],[36,37],[37,38],[38,39],[39,40],[40,41],[41,42],[42,43],[43,44],[44,45],[45,46],[46,47],[47,48],[48,0],[48,49]]]",
+          "expectedOutput": "[[48,49]]",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=1000 for complexity verification",
+          "scaleN": 1000
+        }
+      ]
+    },
+    {
+      "num": 414,
+      "title": "Path With Maximum Probability",
+      "slug": "path-with-maximum-probability",
+      "level": 20,
+      "difficulty": "MEDIUM",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 25,
+      "statement": "You are given an undirected weighted graph of `n` nodes (0-indexed), represented by an edge list where `edges[i] = [a, b]` is an undirected edge connecting the nodes `a` and `b` with a probability of success of traversing that edge `succProb[i]`.\n\nGiven two nodes `start_node` and `end_node`, find the path with the maximum probability of success to go from `start_node` to `end_node`.\n\nIf there is no path from `start_node` to `end_node`, return 0. Your answer will be accepted if it has an absolute error that does not exceed 1e-5.",
+      "executionModel": "FUNCTION",
+      "functionName": "maxProbability",
+      "parameterDefinitions": [
+        {
+          "name": "n",
+          "type": "number",
+          "description": "Number of nodes"
+        },
+        {
+          "name": "edges",
+          "type": "number[][]",
+          "description": "List of undirected edges [a, b]"
+        },
+        {
+          "name": "succProb",
+          "type": "number[]",
+          "description": "Edge success probabilities"
+        },
+        {
+          "name": "start_node",
+          "type": "number",
+          "description": "Start node index"
+        },
+        {
+          "name": "end_node",
+          "type": "number",
+          "description": "End node index"
+        }
+      ],
+      "returnType": "number",
+      "constraints": [
+        "2 <= n <= 10^4",
+        "0 <= edges.length == succProb.length <= 2 * 10^4",
+        "0 <= succProb[i] <= 1",
+        "0 <= a, b < n",
+        "0 <= start_node, end_node < n"
+      ],
+      "examples": [
+        {
+          "input": "n = 3, edges = [[0,1],[1,2],[0,2]], succProb = [0.5,0.5,0.2], start_node = 0, end_node = 2",
+          "output": "0.25",
+          "explanation": "Path 0 -> 1 -> 2 has probability 0.5 * 0.5 = 0.25, which is greater than direct 0 -> 2 (0.2)."
+        },
+        {
+          "input": "n = 3, edges = [[0,1],[1,2],[0,2]], succProb = [0.5,0.5,0.3], start_node = 0, end_node = 2",
+          "output": "0.3",
+          "explanation": "Direct edge has probability 0.3."
+        },
+        {
+          "input": "n = 3, edges = [[0,1]], succProb = [0.5], start_node = 0, end_node = 2",
+          "output": "0",
+          "explanation": "Node 2 is unreachable."
+        },
+        {
+          "input": "n = 2, edges = [[0,1]], succProb = [1.0], start_node = 0, end_node = 1",
+          "output": "1",
+          "explanation": "Certain connection, probability 1.0."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number, number[][], number[], number, number}\n * @return {number}\n */\nfunction maxProbability(n, edges, succProb, start_node, end_node) {\n  // Optimal O(E * V) with SPFA/Bellman-Ford or O(E log V) with Dijkstra / O(V + E)\n};\n",
+        "typescript": "function maxProbability(n: number, edges: number[][], succProb: number[], start_node: number, end_node: number): number {\n  // Optimal O(E * V) with SPFA/Bellman-Ford or O(E log V) with Dijkstra / O(V + E)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def maxProbability(self, n: int, edges: list[int], succProb: list[int], start_node: int, end_node: int) -> number:\n        # Optimal O(E * V) with SPFA/Bellman-Ford or O(E log V) with Dijkstra\n        pass\n"
+      },
+      "optimalSolution": "function maxProbability(n, edges, succProb, start_node, end_node) {\n  const probs = new Array(n).fill(0);\n  probs[start_node] = 1.0;\n  for (let round = 0; round < n - 1; round++) {\n    let updated = false;\n    for (let i = 0; i < edges.length; i++) {\n      const [u, v] = edges[i];\n      const p = succProb[i];\n      if (probs[u] * p > probs[v]) {\n        probs[v] = probs[u] * p;\n        updated = true;\n      }\n      if (probs[v] * p > probs[u]) {\n        probs[u] = probs[v] * p;\n        updated = true;\n      }\n    }\n    if (!updated) break;\n  }\n  return probs[end_node];\n}",
+      "optimalTimeComplexity": "O(E * V) with SPFA/Bellman-Ford or O(E log V) with Dijkstra",
+      "optimalSpaceComplexity": "O(V + E)",
+      "suboptimalSolution": "function maxProbability(n, edges, succProb, start_node, end_node) {\n  const adj = Array.from({ length: n }, () => []);\n  for (let i = 0; i < edges.length; i++) {\n    const [u, v] = edges[i];\n    adj[u].push([v, succProb[i]]);\n    adj[v].push([u, succProb[i]]);\n  }\n  const prob = new Array(n).fill(0);\n  prob[start_node] = 1;\n  const queue = [[start_node, 1]];\n  while (queue.length > 0) {\n    queue.sort((a, b) => b[1] - a[1]);\n    const [curr, p] = queue.shift();\n    if (p < prob[curr]) continue;\n    for (const [nxt, weight] of adj[curr]) {\n      if (prob[curr] * weight > prob[nxt]) {\n        prob[nxt] = prob[curr] * weight;\n        queue.push([nxt, prob[nxt]]);\n      }\n    }\n  }\n  return prob[end_node];\n}",
+      "suboptimalTimeComplexity": "O(E log V)",
+      "suboptimalSpaceComplexity": "O(V + E)",
+      "commonMistakes": [
+        "Trying to take sum of probabilities instead of multiplying them."
+      ],
+      "hints": [
+        "Multiplying probabilities in [0, 1] is equivalent to minimizing -log(p).",
+        "Use Dijkstra or Bellman-Ford updating prob[v] = max(prob[v], prob[u] * edge_prob)."
+      ],
+      "testCases": [
+        {
+          "input": "[3,[[0,1],[1,2],[0,2]],[0.5,0.5,0.2],0,2]",
+          "expectedOutput": "0.25",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[3,[[0,1],[1,2],[0,2]],[0.5,0.5,0.3],0,2]",
+          "expectedOutput": "0.3",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[3,[[0,1]],[0.5],0,2]",
+          "expectedOutput": "0",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[2,[[0,1]],[1],0,1]",
+          "expectedOutput": "1",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[2,[],[],0,1]",
+          "expectedOutput": "0",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[4,[[0,1],[1,2],[2,3]],[0.1,0.1,0.1],0,3]",
+          "expectedOutput": "0.0010000000000000002",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[3,[[0,1],[1,2]],[0.8,0.8],0,2]",
+          "expectedOutput": "0.6400000000000001",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[5,[[1,4],[2,4],[0,4],[0,3],[0,2],[2,3]],[0.37,0.17,0.93,0.23,0.39,0.04],3,4]",
+          "expectedOutput": "0.2139",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[4,[[0,1],[1,2],[2,3],[0,3]],[0.9,0.9,0.9,0.7],0,3]",
+          "expectedOutput": "0.7290000000000001",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[3,[[0,1],[0,2]],[0,0],0,2]",
+          "expectedOutput": "0",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[20,[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19]],[0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95],0,19]",
+          "expectedOutput": "0.37735360253530714",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=1000 for complexity verification",
+          "scaleN": 1000
+        },
+        {
+          "input": "[25,[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19],[19,20],[20,21],[21,22],[22,23],[23,24]],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],0,24]",
+          "expectedOutput": "1",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=1000 for complexity verification",
+          "scaleN": 1000
+        }
+      ]
+    },
+    {
+      "num": 415,
+      "title": "Find the City With the Smallest Number of Neighbors at a Threshold Distance",
+      "slug": "find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance",
+      "level": 20,
+      "difficulty": "MEDIUM",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 25,
+      "statement": "There are `n` cities numbered from `0` to `n-1`. Given the array `edges` where `edges[i] = [fromi, toi, weighti]` represents a bidirectional and weighted edge between cities `fromi` and `toi`, and given the integer `distanceThreshold`.\n\nReturn the city with the smallest number of cities that are reachable through some path and whose distance is at most `distanceThreshold`, If there are multiple such cities, return the city with the greatest number.",
+      "executionModel": "FUNCTION",
+      "functionName": "findTheCity",
+      "parameterDefinitions": [
+        {
+          "name": "n",
+          "type": "number",
+          "description": "Total number of cities"
+        },
+        {
+          "name": "edges",
+          "type": "number[][]",
+          "description": "Array of bidirectional edges [from, to, weight]"
+        },
+        {
+          "name": "distanceThreshold",
+          "type": "number",
+          "description": "Maximum travel distance threshold"
+        }
+      ],
+      "returnType": "number",
+      "constraints": [
+        "2 <= n <= 100",
+        "1 <= edges.length <= n * (n - 1) / 2",
+        "edges[i].length == 3",
+        "0 <= fromi < toi < n",
+        "1 <= weighti, distanceThreshold <= 10^4",
+        "All pairs (fromi, toi) are distinct."
+      ],
+      "examples": [
+        {
+          "input": "n = 4, edges = [[0,1,3],[1,2,1],[1,3,4],[2,3,1]], distanceThreshold = 4",
+          "output": "3",
+          "explanation": "Cities reachable: city 0 -> {1,2}, city 1 -> {0,2,3}, city 2 -> {0,1,3}, city 3 -> {1,2}. Cities 0 and 3 have 2 reachable cities. Return 3 because it has greatest index."
+        },
+        {
+          "input": "n = 5, edges = [[0,1,2],[0,4,8],[1,2,3],[1,4,2],[2,3,1],[3,4,1]], distanceThreshold = 2",
+          "output": "0",
+          "explanation": "City 0 has 1 neighbor (1) within distance 2."
+        },
+        {
+          "input": "n = 2, edges = [[0,1,5]], distanceThreshold = 4",
+          "output": "1",
+          "explanation": "Distance 5 > threshold 4. Both have 0 reachable cities; greatest index is 1."
+        },
+        {
+          "input": "n = 3, edges = [[0,1,1],[1,2,1]], distanceThreshold = 2",
+          "output": "2",
+          "explanation": "All cities can reach each other, city 2 is max index."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number, number[][], number}\n * @return {number}\n */\nfunction findTheCity(n, edges, distanceThreshold) {\n  // Optimal O(N^3) with Floyd-Warshall / O(N^2)\n};\n",
+        "typescript": "function findTheCity(n: number, edges: number[][], distanceThreshold: number): number {\n  // Optimal O(N^3) with Floyd-Warshall / O(N^2)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def findTheCity(self, n: int, edges: list[int], distanceThreshold: int) -> number:\n        # Optimal O(N^3) with Floyd-Warshall\n        pass\n"
+      },
+      "optimalSolution": "function findTheCity(n, edges, distanceThreshold) {\n  const dist = Array.from({ length: n }, () => new Array(n).fill(Infinity));\n  for (let i = 0; i < n; i++) dist[i][i] = 0;\n  for (const [u, v, w] of edges) {\n    dist[u][v] = w;\n    dist[v][u] = w;\n  }\n  for (let k = 0; k < n; k++) {\n    for (let i = 0; i < n; i++) {\n      for (let j = 0; j < n; j++) {\n        if (dist[i][k] + dist[k][j] < dist[i][j]) {\n          dist[i][j] = dist[i][k] + dist[k][j];\n        }\n      }\n    }\n  }\n  let minCount = Infinity, bestCity = -1;\n  for (let i = 0; i < n; i++) {\n    let count = 0;\n    for (let j = 0; j < n; j++) {\n      if (i !== j && dist[i][j] <= distanceThreshold) count++;\n    }\n    if (count <= minCount) {\n      minCount = count;\n      bestCity = i;\n    }\n  }\n  return bestCity;\n}",
+      "optimalTimeComplexity": "O(N^3) with Floyd-Warshall",
+      "optimalSpaceComplexity": "O(N^2)",
+      "suboptimalSolution": "function findTheCity(n, edges, distanceThreshold) {\n  const adj = Array.from({ length: n }, () => []);\n  for (const [u, v, w] of edges) {\n    adj[u].push([v, w]);\n    adj[v].push([u, w]);\n  }\n  let minCount = Infinity, res = -1;\n  for (let i = 0; i < n; i++) {\n    const dist = new Array(n).fill(Infinity);\n    dist[i] = 0;\n    const q = [[i, 0]];\n    while (q.length > 0) {\n      q.sort((a, b) => a[1] - b[1]);\n      const [u, d] = q.shift();\n      if (d > dist[u]) continue;\n      for (const [v, w] of adj[u]) {\n        if (dist[u] + w < dist[v]) {\n          dist[v] = dist[u] + w;\n          q.push([v, dist[v]]);\n        }\n      }\n    }\n    const reachable = dist.filter((d, idx) => idx !== i && d <= distanceThreshold).length;\n    if (reachable <= minCount) {\n      minCount = reachable;\n      res = i;\n    }\n  }\n  return res;\n}",
+      "suboptimalTimeComplexity": "O(N * E log V)",
+      "suboptimalSpaceComplexity": "O(V + E)",
+      "commonMistakes": [
+        "When counts are equal, returning the smaller index instead of the greatest number."
+      ],
+      "hints": [
+        "All-pairs shortest paths using Floyd-Warshall runs in O(N^3) where N <= 100.",
+        "Count how many cities j have dist[i][j] <= distanceThreshold; break ties by picking larger i."
+      ],
+      "testCases": [
+        {
+          "input": "[4,[[0,1,3],[1,2,1],[1,3,4],[2,3,1]],4]",
+          "expectedOutput": "3",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[5,[[0,1,2],[0,4,8],[1,2,3],[1,4,2],[2,3,1],[3,4,1]],2]",
+          "expectedOutput": "0",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[2,[[0,1,5]],4]",
+          "expectedOutput": "1",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[3,[[0,1,1],[1,2,1]],2]",
+          "expectedOutput": "2",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[2,[[0,1,1]],1]",
+          "expectedOutput": "1",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[3,[[0,1,10],[1,2,10]],5]",
+          "expectedOutput": "2",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[4,[],10]",
+          "expectedOutput": "3",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[6,[[0,1,10],[1,2,10],[2,3,10],[3,4,10],[4,5,10]],20]",
+          "expectedOutput": "5",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[4,[[0,1,1],[1,2,1],[2,3,1],[3,0,1]],2]",
+          "expectedOutput": "3",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[5,[[0,1,1],[2,3,1]],1]",
+          "expectedOutput": "4",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[20,[[0,1,1],[1,2,3],[2,3,5],[3,4,2],[4,5,4],[5,6,1],[6,7,3],[7,8,5],[8,9,2],[9,10,4],[10,11,1],[11,12,3],[12,13,5],[13,14,2],[14,15,4],[15,16,1],[16,17,3],[17,18,5],[18,19,2]],10]",
+          "expectedOutput": "19",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=1000 for complexity verification",
+          "scaleN": 1000
+        },
+        {
+          "input": "[25,[[0,1,1],[1,2,1],[2,3,1],[3,4,1],[4,5,1],[5,6,1],[6,7,1],[7,8,1],[8,9,1],[9,10,1],[10,11,1],[11,12,1],[12,13,1],[13,14,1],[14,15,1],[15,16,1],[16,17,1],[17,18,1],[18,19,1],[19,20,1],[20,21,1],[21,22,1],[22,23,1],[23,24,1]],5]",
+          "expectedOutput": "24",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=1000 for complexity verification",
+          "scaleN": 1000
+        }
+      ]
+    },
+    {
+      "num": 416,
+      "title": "Number of Ways to Arrive at Destination",
+      "slug": "number-of-ways-to-arrive-at-destination",
+      "level": 20,
+      "difficulty": "MEDIUM",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 25,
+      "statement": "You are in a city that consists of `n` intersections numbered from `0` to `n - 1` with bi-directional roads between some intersections. The inputs are generated such that you can reach any intersection from any other intersection in that city and there is at most one road between any two intersections.\n\nYou are given an integer `n` and a 2D integer array `roads` where `roads[i] = [ui, vi, timei]` means that there is a bidirectional road between intersections `ui` and `vi` that takes `timei` minutes to travel.\n\nReturn the number of ways you can arrive at your destination `n - 1` in the shortest amount of time. Since the answer may be large, return it modulo `10^9 + 7`.",
+      "executionModel": "FUNCTION",
+      "functionName": "countPaths",
+      "parameterDefinitions": [
+        {
+          "name": "n",
+          "type": "number",
+          "description": "Number of intersections"
+        },
+        {
+          "name": "roads",
+          "type": "number[][]",
+          "description": "Bidirectional roads [u, v, time]"
+        }
+      ],
+      "returnType": "number",
+      "constraints": [
+        "1 <= n <= 200",
+        "n - 1 <= roads.length <= n * (n - 1) / 2",
+        "roads[i].length == 3",
+        "0 <= ui, vi <= n - 1",
+        "1 <= timei <= 10^9",
+        "ui != vi"
+      ],
+      "examples": [
+        {
+          "input": "n = 7, roads = [[0,6,7],[0,1,2],[1,2,3],[1,3,3],[6,3,3],[3,5,1],[6,5,1],[2,5,1],[0,4,5],[4,6,2]]",
+          "output": "4",
+          "explanation": "Shortest time to node 6 is 7 minutes. 4 paths take 7 minutes: 0->6, 0->4->6, 0->1->2->5->6, 0->1->3->5->6."
+        },
+        {
+          "input": "n = 2, roads = [[1,0,10]]",
+          "output": "1",
+          "explanation": "Only one direct road, 1 way."
+        },
+        {
+          "input": "n = 3, roads = [[0,1,1],[1,2,1],[0,2,2]]",
+          "output": "2",
+          "explanation": "Two shortest paths of time 2: 0->2 and 0->1->2."
+        },
+        {
+          "input": "n = 4, roads = [[0,1,1],[1,3,1],[0,2,1],[2,3,1]]",
+          "output": "2",
+          "explanation": "Two symmetric paths of time 2."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number, number[][]}\n * @return {number}\n */\nfunction countPaths(n, roads) {\n  // Optimal O(E log V) / O(V + E)\n};\n",
+        "typescript": "function countPaths(n: number, roads: number[][]): number {\n  // Optimal O(E log V) / O(V + E)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def countPaths(self, n: int, roads: list[int]) -> number:\n        # Optimal O(E log V)\n        pass\n"
+      },
+      "optimalSolution": "function countPaths(n, roads) {\n  const MOD = 1000000007;\n  const adj = Array.from({ length: n }, () => []);\n  for (const [u, v, t] of roads) {\n    adj[u].push([v, t]);\n    adj[v].push([u, t]);\n  }\n  const dist = new Array(n).fill(Infinity);\n  const ways = new Array(n).fill(0);\n  dist[0] = 0;\n  ways[0] = 1;\n  const queue = [[0, 0]];\n  while (queue.length > 0) {\n    queue.sort((a, b) => a[1] - b[1]);\n    const [curr, d] = queue.shift();\n    if (d > dist[curr]) continue;\n    for (const [nxt, t] of adj[curr]) {\n      if (d + t < dist[nxt]) {\n        dist[nxt] = d + t;\n        ways[nxt] = ways[curr];\n        queue.push([nxt, dist[nxt]]);\n      } else if (d + t === dist[nxt]) {\n        ways[nxt] = (ways[nxt] + ways[curr]) % MOD;\n      }\n    }\n  }\n  return ways[n - 1];\n}",
+      "optimalTimeComplexity": "O(E log V)",
+      "optimalSpaceComplexity": "O(V + E)",
+      "suboptimalSolution": "function countPaths(n, roads) {\n  const MOD = 1e9 + 7;\n  const adj = Array.from({ length: n }, () => []);\n  for (const [u, v, t] of roads) {\n    adj[u].push([v, t]);\n    adj[v].push([u, t]);\n  }\n  const dist = new Array(n).fill(Infinity);\n  const ways = new Array(n).fill(0);\n  dist[0] = 0;\n  ways[0] = 1;\n  const visited = new Set();\n  for (let i = 0; i < n; i++) {\n    let u = -1;\n    for (let j = 0; j < n; j++) {\n      if (!visited.has(j) && (u === -1 || dist[j] < dist[u])) u = j;\n    }\n    if (dist[u] === Infinity) break;\n    visited.add(u);\n    for (const [v, t] of adj[u]) {\n      if (dist[u] + t < dist[v]) {\n        dist[v] = dist[u] + t;\n        ways[v] = ways[u];\n      } else if (dist[u] + t === dist[v]) {\n        ways[v] = (ways[v] + ways[u]) % MOD;\n      }\n    }\n  }\n  return ways[n - 1];\n}",
+      "suboptimalTimeComplexity": "O(V^2)",
+      "suboptimalSpaceComplexity": "O(V + E)",
+      "commonMistakes": [
+        "Resetting ways[nxt] = 1 instead of ways[nxt] = ways[curr] when a strictly shorter distance is found."
+      ],
+      "hints": [
+        "Augment Dijkstra: maintain both dist[u] (shortest time) and ways[u] (number of shortest paths).",
+        "If dist[u] + t < dist[nxt]: update dist[nxt] and set ways[nxt] = ways[curr].",
+        "If dist[u] + t == dist[nxt]: accumulate ways[nxt] = (ways[nxt] + ways[curr]) % MOD."
+      ],
+      "testCases": [
+        {
+          "input": "[7,[[0,6,7],[0,1,2],[1,2,3],[1,3,3],[6,3,3],[3,5,1],[6,5,1],[2,5,1],[0,4,5],[4,6,2]]]",
+          "expectedOutput": "4",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[2,[[1,0,10]]]",
+          "expectedOutput": "1",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[3,[[0,1,1],[1,2,1],[0,2,2]]]",
+          "expectedOutput": "2",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[4,[[0,1,1],[1,3,1],[0,2,1],[2,3,1]]]",
+          "expectedOutput": "2",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[1,[]]",
+          "expectedOutput": "1",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[3,[[0,1,5],[1,2,5]]]",
+          "expectedOutput": "1",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[4,[[0,1,2],[1,2,2],[2,3,2],[0,3,6]]]",
+          "expectedOutput": "2",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[5,[[0,1,1],[1,2,1],[2,3,1],[3,4,1],[0,2,2],[1,3,2],[2,4,2]]]",
+          "expectedOutput": "5",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[4,[[0,1,100],[1,2,100],[2,3,100],[0,3,300]]]",
+          "expectedOutput": "2",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[5,[[0,1,1],[0,2,1],[0,3,1],[1,4,2],[2,4,2],[3,4,2]]]",
+          "expectedOutput": "3",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[20,[[0,1,1],[1,2,1],[2,3,1],[3,4,1],[4,5,1],[5,6,1],[6,7,1],[7,8,1],[8,9,1],[9,10,1],[10,11,1],[11,12,1],[12,13,1],[13,14,1],[14,15,1],[15,16,1],[16,17,1],[17,18,1],[18,19,1]]]",
+          "expectedOutput": "1",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=1000 for complexity verification",
+          "scaleN": 1000
+        },
+        {
+          "input": "[30,[[0,1,1],[1,2,1],[2,3,1],[3,4,1],[4,5,1],[5,6,1],[6,7,1],[7,8,1],[8,9,1],[9,10,1],[10,11,1],[11,12,1],[12,13,1],[13,14,1],[14,15,1],[15,16,1],[16,17,1],[17,18,1],[18,19,1],[19,20,1],[20,21,1],[21,22,1],[22,23,1],[23,24,1],[24,25,1],[25,26,1],[26,27,1],[27,28,1],[28,29,1],[0,29,29]]]",
+          "expectedOutput": "2",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=1000 for complexity verification",
+          "scaleN": 1000
+        }
+      ]
+    },
+    {
+      "num": 417,
+      "title": "Second Minimum Time to Reach Destination",
+      "slug": "second-minimum-time-to-reach-destination",
+      "level": 20,
+      "difficulty": "HARD",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 35,
+      "statement": "A city is represented as a bi-directional connected graph with `n` vertices where each vertex is labeled from `1` to `n` (1-indexed). The edges in the graph are represented as a 2D integer array `edges`, where each `edges[i] = [ui, vi]` denotes a bi-directional edge between vertex `ui` and vertex `vi`. Every vertex pair is connected by at most one edge, and no vertex has an edge to itself. The time taken to traverse any edge is `time` minutes.\n\nEach vertex has a traffic signal which changes its color from green to red and vice versa every `change` minutes. All signals change at the same time. You can enter a vertex at any time, but can leave a vertex only when the signal is green. You cannot wait at a vertex if the signal is green.\n\nThe second minimum value is defined as the smallest value strictly larger than the minimum value.\n\nReturn the second minimum time it takes to go from vertex 1 to vertex n.",
+      "executionModel": "FUNCTION",
+      "functionName": "secondMinimum",
+      "parameterDefinitions": [
+        {
+          "name": "n",
+          "type": "number",
+          "description": "Number of vertices (1-indexed)"
+        },
+        {
+          "name": "edges",
+          "type": "number[][]",
+          "description": "List of undirected edges [u, v]"
+        },
+        {
+          "name": "time",
+          "type": "number",
+          "description": "Traverse time across any edge"
+        },
+        {
+          "name": "change",
+          "type": "number",
+          "description": "Traffic signal cycle duration"
+        }
+      ],
+      "returnType": "number",
+      "constraints": [
+        "2 <= n <= 10^4",
+        "n - 1 <= edges.length <= min(2 * 10^4, n * (n - 1) / 2)",
+        "edges[i].length == 2",
+        "1 <= ui, vi <= n",
+        "ui != vi",
+        "1 <= time, change <= 1000"
+      ],
+      "examples": [
+        {
+          "input": "n = 5, edges = [[1,2],[1,3],[1,4],[3,4],[4,5]], time = 3, change = 5",
+          "output": "13",
+          "explanation": "Shortest path 1 -> 4 -> 5 takes 2 steps (time 11). Second shortest path 1 -> 3 -> 4 -> 5 takes 3 steps (time 13)."
+        },
+        {
+          "input": "n = 2, edges = [[1,2]], time = 3, change = 2",
+          "output": "11",
+          "explanation": "Shortest path is 1 -> 2 (1 step). Second shortest path traverses 1 -> 2 -> 1 -> 2 (3 steps), taking 11 minutes accounting for red lights."
+        },
+        {
+          "input": "n = 3, edges = [[1,2],[2,3],[1,3]], time = 2, change = 3",
+          "output": "8",
+          "explanation": "Shortest path takes 1 step (2 min), second takes 2 steps (8 min)."
+        },
+        {
+          "input": "n = 4, edges = [[1,2],[2,4],[1,3],[3,4]], time = 1, change = 2",
+          "output": "5",
+          "explanation": "Second shortest path takes 5 minutes."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number, number[][], number, number}\n * @return {number}\n */\nfunction secondMinimum(n, edges, time, change) {\n  // Optimal O(V + E) using BFS tracking first and second shortest arrival times / O(V + E)\n};\n",
+        "typescript": "function secondMinimum(n: number, edges: number[][], time: number, change: number): number {\n  // Optimal O(V + E) using BFS tracking first and second shortest arrival times / O(V + E)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def secondMinimum(self, n: int, edges: list[int], time: int, change: int) -> number:\n        # Optimal O(V + E) using BFS tracking first and second shortest arrival times\n        pass\n"
+      },
+      "optimalSolution": "function secondMinimum(n, edges, time, change) {\n  const adj = Array.from({ length: n + 1 }, () => []);\n  for (const [u, v] of edges) {\n    adj[u].push(v);\n    adj[v].push(u);\n  }\n  const dist1 = new Array(n + 1).fill(Infinity);\n  const dist2 = new Array(n + 1).fill(Infinity);\n  dist1[1] = 0;\n  const queue = [[1, 0]];\n  while (queue.length > 0) {\n    const [u, d] = queue.shift();\n    let curTime = d;\n    const cycle = Math.floor(curTime / change);\n    if (cycle % 2 === 1) {\n      curTime = (cycle + 1) * change;\n    }\n    const nextTime = curTime + time;\n    for (const v of adj[u]) {\n      if (nextTime < dist1[v]) {\n        dist2[v] = dist1[v];\n        dist1[v] = nextTime;\n        queue.push([v, nextTime]);\n      } else if (nextTime > dist1[v] && nextTime < dist2[v]) {\n        dist2[v] = nextTime;\n        queue.push([v, nextTime]);\n      }\n    }\n  }\n  return dist2[n];\n}",
+      "optimalTimeComplexity": "O(V + E) using BFS tracking first and second shortest arrival times",
+      "optimalSpaceComplexity": "O(V + E)",
+      "suboptimalSolution": "function secondMinimum(n, edges, time, change) {\n  const adj = Array.from({ length: n + 1 }, () => []);\n  for (const [u, v] of edges) {\n    adj[u].push(v);\n    adj[v].push(u);\n  }\n  const dist1 = new Array(n + 1).fill(Infinity);\n  const dist2 = new Array(n + 1).fill(Infinity);\n  dist1[1] = 0;\n  const q = [[1, 0]];\n  while (q.length > 0) {\n    const [u, d] = q.shift();\n    let t = d;\n    if (Math.floor(t / change) % 2 === 1) t = (Math.floor(t / change) + 1) * change;\n    t += time;\n    for (const v of adj[u]) {\n      if (t < dist1[v]) {\n        dist2[v] = dist1[v];\n        dist1[v] = t;\n        q.push([v, t]);\n      } else if (t > dist1[v] && t < dist2[v]) {\n        dist2[v] = t;\n        q.push([v, t]);\n      }\n    }\n  }\n  return dist2[n];\n}",
+      "suboptimalTimeComplexity": "O(V + E)",
+      "suboptimalSpaceComplexity": "O(V + E)",
+      "commonMistakes": [
+        "Forgetting that an edge can be traversed back and forth to add 2 steps (e.g. 1 -> 2 -> 1 -> 2).",
+        "Calculating red light wait improperly: cycle = floor(curTime / change); if cycle % 2 == 1, wait until (cycle + 1) * change."
+      ],
+      "hints": [
+        "Track two shortest arrival times dist1[u] and dist2[u] for each vertex.",
+        "When arriving at u at time d: if (d // change) % 2 == 1 (red light), wait until (d // change + 1) * change before departing."
+      ],
+      "testCases": [
+        {
+          "input": "[5,[[1,2],[1,3],[1,4],[3,4],[4,5]],3,5]",
+          "expectedOutput": "13",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[2,[[1,2]],3,2]",
+          "expectedOutput": "11",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[3,[[1,2],[2,3],[1,3]],2,3]",
+          "expectedOutput": "4",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[4,[[1,2],[2,4],[1,3],[3,4]],1,2]",
+          "expectedOutput": "6",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[2,[[1,2]],1,1]",
+          "expectedOutput": "5",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[3,[[1,2],[2,3]],1,2]",
+          "expectedOutput": "6",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[4,[[1,2],[2,3],[3,4]],2,3]",
+          "expectedOutput": "14",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[5,[[1,2],[2,3],[3,5],[1,4],[4,5]],5,5]",
+          "expectedOutput": "25",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[6,[[1,2],[2,3],[3,4],[4,5],[5,6],[1,6]],3,4]",
+          "expectedOutput": "11",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[3,[[1,2],[2,3],[3,1]],5,2]",
+          "expectedOutput": "10",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[20,[[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19],[19,20]],2,3]",
+          "expectedOutput": "62",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=1000 for complexity verification",
+          "scaleN": 1000
+        },
+        {
+          "input": "[30,[[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19],[19,20],[20,21],[21,22],[22,23],[23,24],[24,25],[25,26],[26,27],[27,28],[28,29],[29,30],[1,30]],4,5]",
+          "expectedOutput": "14",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=1000 for complexity verification",
+          "scaleN": 1000
+        }
+      ]
+    },
+    {
+      "num": 418,
+      "title": "Shortest Path Visiting All Nodes",
+      "slug": "shortest-path-visiting-all-nodes",
+      "level": 20,
+      "difficulty": "HARD",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 30,
+      "statement": "You have an undirected, connected graph of `n` nodes labeled from `0` to `n - 1`. You are given an array `graph` where `graph[i]` is a list of all the nodes connected with node `i` by an edge.\n\nReturn the length of the shortest path that visits every node. You may start and stop at any node, you may revisit nodes multiple times, and you may reuse edges.",
+      "executionModel": "FUNCTION",
+      "functionName": "shortestPathLength",
+      "parameterDefinitions": [
+        {
+          "name": "graph",
+          "type": "number[][]",
+          "description": "Adjacency list of the graph"
+        }
+      ],
+      "returnType": "number",
+      "constraints": [
+        "n == graph.length",
+        "1 <= n <= 12",
+        "0 <= graph[i].length < n",
+        "graph[i] does not contain i",
+        "graph[i] contains distinct nodes."
+      ],
+      "examples": [
+        {
+          "input": "graph = [[1,2,3],[0],[0],[0]]",
+          "output": "4",
+          "explanation": "One possible path is [1,0,2,0,3], length 4."
+        },
+        {
+          "input": "graph = [[1],[0,2,4],[1,3,4],[2],[1,2]]",
+          "output": "4",
+          "explanation": "One possible path is [0,1,4,2,3], length 4."
+        },
+        {
+          "input": "graph = [[]]",
+          "output": "0",
+          "explanation": "Single node path has length 0."
+        },
+        {
+          "input": "graph = [[1],[0]]",
+          "output": "1",
+          "explanation": "Single edge [0, 1] visits both nodes in 1 step."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number[][]}\n * @return {number}\n */\nfunction shortestPathLength(graph) {\n  // Optimal O(N^2 * 2^N) with Multi-Source BFS on (node, mask) / O(N * 2^N)\n};\n",
+        "typescript": "function shortestPathLength(graph: number[][]): number {\n  // Optimal O(N^2 * 2^N) with Multi-Source BFS on (node, mask) / O(N * 2^N)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def shortestPathLength(self, graph: list[int]) -> number:\n        # Optimal O(N^2 * 2^N) with Multi-Source BFS on (node, mask)\n        pass\n"
+      },
+      "optimalSolution": "function shortestPathLength(graph) {\n  const n = graph.length;\n  if (n <= 1) return 0;\n  const targetMask = (1 << n) - 1;\n  const queue = [];\n  const visited = Array.from({ length: n }, () => new Array(1 << n).fill(false));\n  for (let i = 0; i < n; i++) {\n    queue.push([i, 1 << i, 0]);\n    visited[i][1 << i] = true;\n  }\n  while (queue.length > 0) {\n    const [node, mask, dist] = queue.shift();\n    if (mask === targetMask) return dist;\n    for (const neighbor of graph[node]) {\n      const nextMask = mask | (1 << neighbor);\n      if (!visited[neighbor][nextMask]) {\n        visited[neighbor][nextMask] = true;\n        queue.push([neighbor, nextMask, dist + 1]);\n      }\n    }\n  }\n  return -1;\n}",
+      "optimalTimeComplexity": "O(N^2 * 2^N) with Multi-Source BFS on (node, mask)",
+      "optimalSpaceComplexity": "O(N * 2^N)",
+      "suboptimalSolution": "function shortestPathLength(graph) {\n  const n = graph.length;\n  if (n <= 1) return 0;\n  const target = (1 << n) - 1;\n  const q = [];\n  const seen = new Set();\n  for (let i = 0; i < n; i++) {\n    q.push([i, 1 << i, 0]);\n    seen.add(i + ',' + (1 << i));\n  }\n  while (q.length > 0) {\n    const [u, mask, steps] = q.shift();\n    if (mask === target) return steps;\n    for (const v of graph[u]) {\n      const nxtMask = mask | (1 << v);\n      const key = v + ',' + nxtMask;\n      if (!seen.has(key)) {\n        seen.add(key);\n        q.push([v, nxtMask, steps + 1]);\n      }\n    }\n  }\n  return 0;\n}",
+      "suboptimalTimeComplexity": "O(N^2 * 2^N)",
+      "suboptimalSpaceComplexity": "O(N * 2^N)",
+      "commonMistakes": [
+        "Starting BFS from node 0 only instead of multi-source BFS starting from all nodes simultaneously."
+      ],
+      "hints": [
+        "State representation: (current_node, visited_nodes_mask).",
+        "Multi-source BFS from every node with mask (1 << node) guarantees the shortest path is found first."
+      ],
+      "testCases": [
+        {
+          "input": "[[[1,2,3],[0],[0],[0]]]",
+          "expectedOutput": "4",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[[[1],[0,2,4],[1,3,4],[2],[1,2]]]",
+          "expectedOutput": "4",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[[[]]]",
+          "expectedOutput": "0",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[[[1],[0]]]",
+          "expectedOutput": "1",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[[[1,2],[0,2],[0,1]]]",
+          "expectedOutput": "2",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[[[1],[0,2],[1]]]",
+          "expectedOutput": "2",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[[[1,3],[0,2],[1,3],[0,2]]]",
+          "expectedOutput": "3",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[[[2,3],[2],[0,1],[0,4],[3]]]",
+          "expectedOutput": "4",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[[[1,4],[0,2],[1,3],[2,4],[0,3]]]",
+          "expectedOutput": "4",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[[[1,2,3,4],[0],[0],[0],[0]]]",
+          "expectedOutput": "6",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[[[1],[0,2],[1,3],[2,4],[3,5],[4,6],[5,7],[6,8],[7,9],[8]]]",
+          "expectedOutput": "9",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=10 for complexity verification",
+          "scaleN": 10
+        },
+        {
+          "input": "[[[1,9],[0,2],[1,3],[2,4],[3,5],[4,6],[5,7],[6,8],[7,9],[8,0]]]",
+          "expectedOutput": "9",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=10 for complexity verification",
+          "scaleN": 10
+        }
+      ]
+    },
+    {
+      "num": 419,
+      "title": "Bus Routes",
+      "slug": "bus-routes",
+      "level": 20,
+      "difficulty": "HARD",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 30,
+      "statement": "You are given an array `routes` representing bus routes where `routes[i]` is a bus route that the `i-th` bus repeats forever.\n\nFor example, if `routes[0] = [1, 5, 7]`, this means that the 0th bus travels in the sequence 1 -> 5 -> 7 -> 1 -> 5 -> 7 -> 1 -> ... forever.\n\nYou will start at the bus stop `source` (You are not on any bus initially), and you want to go to the bus stop `target`. You can travel between bus stops by buses only.\n\nReturn the least number of buses you must take to travel from `source` to `target`. Return `-1` if it is not possible.",
+      "executionModel": "FUNCTION",
+      "functionName": "numBusesToDestination",
+      "parameterDefinitions": [
+        {
+          "name": "routes",
+          "type": "number[][]",
+          "description": "Array of circular bus routes"
+        },
+        {
+          "name": "source",
+          "type": "number",
+          "description": "Starting bus stop"
+        },
+        {
+          "name": "target",
+          "type": "number",
+          "description": "Destination bus stop"
+        }
+      ],
+      "returnType": "number",
+      "constraints": [
+        "1 <= routes.length <= 500",
+        "1 <= routes[i].length <= 10^5",
+        "All values of routes[i] are unique.",
+        "sum(routes[i].length) <= 10^5",
+        "0 <= routes[i][j] < 10^6",
+        "0 <= source, target < 10^6"
+      ],
+      "examples": [
+        {
+          "input": "routes = [[1,2,7],[3,6,7]], source = 1, target = 6",
+          "output": "2",
+          "explanation": "Take bus 0 from stop 1 to 7, then take bus 1 from stop 7 to 6. Total 2 buses."
+        },
+        {
+          "input": "routes = [[7,12],[4,5,15],[6],[15,19],[9,12,13]], source = 15, target = 12",
+          "output": "-1",
+          "explanation": "Target stop 12 is unreachable from stop 15."
+        },
+        {
+          "input": "routes = [[1,2,3]], source = 1, target = 1",
+          "output": "0",
+          "explanation": "Already at destination, 0 buses needed."
+        },
+        {
+          "input": "routes = [[1,2,3],[3,4,5]], source = 1, target = 5",
+          "output": "2",
+          "explanation": "Bus 0 then bus 1."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number[][], number, number}\n * @return {number}\n */\nfunction numBusesToDestination(routes, source, target) {\n  // Optimal O(sum(routes[i].length)) / O(sum(routes[i].length))\n};\n",
+        "typescript": "function numBusesToDestination(routes: number[][], source: number, target: number): number {\n  // Optimal O(sum(routes[i].length)) / O(sum(routes[i].length))\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def numBusesToDestination(self, routes: list[int], source: int, target: int) -> number:\n        # Optimal O(sum(routes[i].length))\n        pass\n"
+      },
+      "optimalSolution": "function numBusesToDestination(routes, source, target) {\n  if (source === target) return 0;\n  const stopToRoutes = new Map();\n  for (let r = 0; r < routes.length; r++) {\n    for (const stop of routes[r]) {\n      if (!stopToRoutes.has(stop)) stopToRoutes.set(stop, []);\n      stopToRoutes.get(stop).push(r);\n    }\n  }\n  if (!stopToRoutes.has(source) || !stopToRoutes.has(target)) return -1;\n  const visitedRoutes = new Set();\n  const visitedStops = new Set([source]);\n  const queue = [[source, 0]];\n  while (queue.length > 0) {\n    const [stop, buses] = queue.shift();\n    if (stop === target) return buses;\n    const routeList = stopToRoutes.get(stop) || [];\n    for (const r of routeList) {\n      if (visitedRoutes.has(r)) continue;\n      visitedRoutes.add(r);\n      for (const nextStop of routes[r]) {\n        if (!visitedStops.has(nextStop)) {\n          visitedStops.add(nextStop);\n          queue.push([nextStop, buses + 1]);\n        }\n      }\n    }\n  }\n  return -1;\n}",
+      "optimalTimeComplexity": "O(sum(routes[i].length))",
+      "optimalSpaceComplexity": "O(sum(routes[i].length))",
+      "suboptimalSolution": "function numBusesToDestination(routes, source, target) {\n  if (source === target) return 0;\n  const n = routes.length;\n  const adj = Array.from({ length: n }, () => []);\n  const routeSets = routes.map(r => new Set(r));\n  for (let i = 0; i < n; i++) {\n    for (let j = i + 1; j < n; j++) {\n      for (const stop of routes[i]) {\n        if (routeSets[j].has(stop)) { adj[i].push(j); adj[j].push(i); break; }\n      }\n    }\n  }\n  const queue = [];\n  const visited = new Set();\n  for (let i = 0; i < n; i++) {\n    if (routeSets[i].has(source)) { queue.push([i, 1]); visited.add(i); }\n  }\n  while (queue.length > 0) {\n    const [r, cnt] = queue.shift();\n    if (routeSets[r].has(target)) return cnt;\n    for (const nextR of adj[r]) {\n      if (!visited.has(nextR)) {\n        visited.add(nextR);\n        queue.push([nextR, cnt + 1]);\n      }\n    }\n  }\n  return -1;\n}",
+      "suboptimalTimeComplexity": "O(N^2 * L)",
+      "suboptimalSpaceComplexity": "O(N^2)",
+      "commonMistakes": [
+        "Re-visiting all stops along a previously explored bus route, causing exponential slowdown.",
+        "Not returning 0 immediately when source === target."
+      ],
+      "hints": [
+        "Map each stop to the list of bus routes that pass through it.",
+        "Perform BFS on the routes: when a route is visited once, mark it visited so its stops are never re-enqueued."
+      ],
+      "testCases": [
+        {
+          "input": "[[[1,2,7],[3,6,7]],1,6]",
+          "expectedOutput": "2",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[[[7,12],[4,5,15],[6],[15,19],[9,12,13]],15,12]",
+          "expectedOutput": "-1",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[[[1,2,3]],1,1]",
+          "expectedOutput": "0",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[[[1,2,3],[3,4,5]],1,5]",
+          "expectedOutput": "2",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[[[1,2]],1,2]",
+          "expectedOutput": "1",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[[[1,2]],1,3]",
+          "expectedOutput": "-1",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[[[1,2],[3,4]],1,4]",
+          "expectedOutput": "-1",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[[[1,9,12,20,23,24,35,38],[10,21,24,31,32,34,37,38,43],[10,19,40],[1,3,4,8,17,18]],1,43]",
+          "expectedOutput": "2",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[[[1,7],[3,5]],1,3]",
+          "expectedOutput": "-1",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[[[1,2],[2,3],[3,4],[4,5],[5,6]],1,6]",
+          "expectedOutput": "5",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19],[19,20],[20,21],[21,22],[22,23],[23,24],[24,25],[25,26],[26,27],[27,28],[28,29],[29,30],[30,31],[31,32],[32,33],[33,34],[34,35],[35,36],[36,37],[37,38],[38,39],[39,40]],0,40]",
+          "expectedOutput": "40",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=40 for complexity verification",
+          "scaleN": 40
+        },
+        {
+          "input": "[[[0,100],[1,100],[2,100],[3,100],[4,100],[5,100],[6,100],[7,100],[8,100],[9,100],[10,100],[11,100],[12,100],[13,100],[14,100],[15,100],[16,100],[17,100],[18,100],[19,100],[20,100],[21,100],[22,100],[23,100],[24,100],[25,100],[26,100],[27,100],[28,100],[29,100],[30,100],[31,100],[32,100],[33,100],[34,100],[35,100],[36,100],[37,100],[38,100],[39,100],[40,100],[41,100],[42,100],[43,100],[44,100],[45,100],[46,100],[47,100],[48,100],[49,100]],0,49]",
+          "expectedOutput": "2",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=50 for complexity verification",
+          "scaleN": 50
+        }
+      ]
+    },
+    {
+      "num": 420,
+      "title": "Course Schedule III",
+      "slug": "course-schedule-iii",
+      "level": 20,
+      "difficulty": "HARD",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 25,
+      "statement": "There are `n` different online courses numbered from `1` to `n`. You are given an array `courses` where `courses[i] = [durationi, lastDayi]` indicate that the `i-th` course should be taken continuously for `durationi` days and must be finished before or on `lastDayi`.\n\nYou will start on the `1st` day and you cannot take two or more courses simultaneously.\n\nReturn the maximum number of courses that you can take.",
+      "executionModel": "FUNCTION",
+      "functionName": "scheduleCourse",
+      "parameterDefinitions": [
+        {
+          "name": "courses",
+          "type": "number[][]",
+          "description": "Array of [duration, lastDay] pairs"
+        }
+      ],
+      "returnType": "number",
+      "constraints": [
+        "1 <= courses.length <= 10^4",
+        "1 <= durationi, lastDayi <= 10^4"
+      ],
+      "examples": [
+        {
+          "input": "courses = [[100,200],[200,1300],[1000,1250],[2000,3200]]",
+          "output": "3",
+          "explanation": "Take course 0 (days 1-100), course 2 (days 101-1100), and course 1 (days 1101-1300). Cannot take course 3. Total 3 courses."
+        },
+        {
+          "input": "courses = [[1,2]]",
+          "output": "1",
+          "explanation": "Take the only course."
+        },
+        {
+          "input": "courses = [[3,2],[4,3]]",
+          "output": "0",
+          "explanation": "Both durations exceed lastDay."
+        },
+        {
+          "input": "courses = [[100,2],[3,15]]",
+          "output": "1",
+          "explanation": "Only course 1 fits."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number[][]}\n * @return {number}\n */\nfunction scheduleCourse(courses) {\n  // Optimal O(N log N) / O(N)\n};\n",
+        "typescript": "function scheduleCourse(courses: number[][]): number {\n  // Optimal O(N log N) / O(N)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def scheduleCourse(self, courses: list[int]) -> number:\n        # Optimal O(N log N)\n        pass\n"
+      },
+      "optimalSolution": "function scheduleCourse(courses) {\n  courses.sort((a, b) => a[1] - b[1]);\n  const maxHeap = [];\n  let time = 0;\n  for (const [dur, last] of courses) {\n    if (time + dur <= last) {\n      time += dur;\n      maxHeap.push(dur);\n      maxHeap.sort((a, b) => a - b);\n    } else if (maxHeap.length > 0 && maxHeap[maxHeap.length - 1] > dur) {\n      time += dur - maxHeap.pop();\n      maxHeap.push(dur);\n      maxHeap.sort((a, b) => a - b);\n    }\n  }\n  return maxHeap.length;\n}",
+      "optimalTimeComplexity": "O(N log N)",
+      "optimalSpaceComplexity": "O(N)",
+      "suboptimalSolution": "function scheduleCourse(courses) {\n  courses.sort((a, b) => a[1] - b[1]);\n  const taken = [];\n  let time = 0;\n  for (const [dur, last] of courses) {\n    taken.push(dur);\n    time += dur;\n    if (time > last) {\n      let maxIdx = 0;\n      for (let i = 1; i < taken.length; i++) {\n        if (taken[i] > taken[maxIdx]) maxIdx = i;\n      }\n      time -= taken[maxIdx];\n      taken.splice(maxIdx, 1);\n    }\n  }\n  return taken.length;\n}",
+      "suboptimalTimeComplexity": "O(N^2)",
+      "suboptimalSpaceComplexity": "O(N)",
+      "commonMistakes": [
+        "Sorting by duration first instead of sorting by deadline (lastDay) first."
+      ],
+      "hints": [
+        "Sort courses by deadline lastDay in ascending order.",
+        "Greedily add courses: if total time exceeds deadline, drop the course with the largest duration so far to maximize available time!"
+      ],
+      "testCases": [
+        {
+          "input": "[[[100,200],[200,1300],[1000,1250],[2000,3200]]]",
+          "expectedOutput": "3",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[[[1,2]]]",
+          "expectedOutput": "1",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[[[3,2],[4,3]]]",
+          "expectedOutput": "0",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[[[100,2],[3,15]]]",
+          "expectedOutput": "1",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[[[5,5]]]",
+          "expectedOutput": "1",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[[[1,1],[1,2],[1,3]]]",
+          "expectedOutput": "3",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[[[10,5]]]",
+          "expectedOutput": "0",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[[[5,15],[3,19],[6,7],[2,10],[5,16],[8,14],[10,11],[2,19]]]",
+          "expectedOutput": "5",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[[[7,17],[3,12],[10,20],[9,10],[5,20],[10,19],[4,18]]]",
+          "expectedOutput": "4",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[[[9,14],[7,12],[1,11],[4,7]]]",
+          "expectedOutput": "3",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[[[1,2],[2,4],[3,6],[4,8],[5,10],[6,12],[7,14],[8,16],[9,18],[10,20],[11,22],[12,24],[13,26],[14,28],[15,30],[16,32],[17,34],[18,36],[19,38],[20,40],[21,42],[22,44],[23,46],[24,48],[25,50],[26,52],[27,54],[28,56],[29,58],[30,60],[31,62],[32,64],[33,66],[34,68],[35,70],[36,72],[37,74],[38,76],[39,78],[40,80],[41,82],[42,84],[43,86],[44,88],[45,90],[46,92],[47,94],[48,96],[49,98],[50,100],[51,102],[52,104],[53,106],[54,108],[55,110],[56,112],[57,114],[58,116],[59,118],[60,120]]]",
+          "expectedOutput": "7",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=60 for complexity verification",
+          "scaleN": 60
+        },
+        {
+          "input": "[[[1,1],[1,2],[1,3],[1,4],[1,5],[1,6],[1,7],[1,8],[1,9],[1,10],[1,11],[1,12],[1,13],[1,14],[1,15],[1,16],[1,17],[1,18],[1,19],[1,20],[1,21],[1,22],[1,23],[1,24],[1,25],[1,26],[1,27],[1,28],[1,29],[1,30],[1,31],[1,32],[1,33],[1,34],[1,35],[1,36],[1,37],[1,38],[1,39],[1,40],[1,41],[1,42],[1,43],[1,44],[1,45],[1,46],[1,47],[1,48],[1,49],[1,50],[1,51],[1,52],[1,53],[1,54],[1,55],[1,56],[1,57],[1,58],[1,59],[1,60],[1,61],[1,62],[1,63],[1,64],[1,65],[1,66],[1,67],[1,68],[1,69],[1,70],[1,71],[1,72],[1,73],[1,74],[1,75],[1,76],[1,77],[1,78],[1,79],[1,80]]]",
+          "expectedOutput": "80",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=80 for complexity verification",
+          "scaleN": 80
+        }
+      ]
+    },
+    {
+      "num": 421,
+      "title": "Maximum Employees to Be Invited to a Meeting",
+      "slug": "maximum-employees-to-be-invited-to-a-meeting",
+      "level": 20,
+      "difficulty": "HARD",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 35,
+      "statement": "A company is organizing a meeting and has a list of `n` employees, waiting to be invited. They have arranged for a large circular table, capable of seating any number of employees.\n\nThe employees are numbered from `0` to `n - 1`. Each employee has a favorite person and they will attend the meeting only if they can sit next to their favorite person at the table. The favorite person of an employee is not themself.\n\nGiven a 0-indexed integer array `favorite`, where `favorite[i]` denotes the favorite person of the `i-th` employee, return the maximum number of employees that can be invited to the meeting.",
+      "executionModel": "FUNCTION",
+      "functionName": "maximumInvitations",
+      "parameterDefinitions": [
+        {
+          "name": "favorite",
+          "type": "number[]",
+          "description": "Array of each employee's favorite person"
+        }
+      ],
+      "returnType": "number",
+      "constraints": [
+        "n == favorite.length",
+        "2 <= n <= 10^5",
+        "0 <= favorite[i] <= n - 1",
+        "favorite[i] != i"
+      ],
+      "examples": [
+        {
+          "input": "favorite = [2,2,1,2]",
+          "output": "3",
+          "explanation": "Employees 0, 1, 2 can sit around circular table: 0 next to 2, 1 next to 2, 2 next to 1."
+        },
+        {
+          "input": "favorite = [1,2,0]",
+          "output": "3",
+          "explanation": "Cycle 0 -> 1 -> 2 -> 0 seated together."
+        },
+        {
+          "input": "favorite = [3,0,1,4,1]",
+          "output": "4",
+          "explanation": "Employees 0, 1, 3, 4 can be seated."
+        },
+        {
+          "input": "favorite = [1,0]",
+          "output": "2",
+          "explanation": "Pair mutually favors each other."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number[]}\n * @return {number}\n */\nfunction maximumInvitations(favorite) {\n  // Optimal O(N) topological sort and cycle detection / O(N)\n};\n",
+        "typescript": "function maximumInvitations(favorite: number[]): number {\n  // Optimal O(N) topological sort and cycle detection / O(N)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def maximumInvitations(self, favorite: list[int]) -> number:\n        # Optimal O(N) topological sort and cycle detection\n        pass\n"
+      },
+      "optimalSolution": "function maximumInvitations(favorite) {\n  const n = favorite.length;\n  const inDegree = new Array(n).fill(0);\n  for (const f of favorite) inDegree[f]++;\n  const queue = [];\n  for (let i = 0; i < n; i++) if (inDegree[i] === 0) queue.push(i);\n  const depth = new Array(n).fill(1);\n  while (queue.length > 0) {\n    const curr = queue.shift();\n    const next = favorite[curr];\n    depth[next] = Math.max(depth[next], depth[curr] + 1);\n    inDegree[next]--;\n    if (inDegree[next] === 0) queue.push(next);\n  }\n  let maxCycle = 0, pairChains = 0;\n  for (let i = 0; i < n; i++) {\n    if (inDegree[i] > 0) {\n      let cycleLen = 0, curr = i;\n      while (inDegree[curr] > 0) {\n        inDegree[curr] = 0;\n        cycleLen++;\n        curr = favorite[curr];\n      }\n      if (cycleLen === 2) {\n        pairChains += depth[i] + depth[favorite[i]];\n      } else {\n        maxCycle = Math.max(maxCycle, cycleLen);\n      }\n    }\n  }\n  return Math.max(maxCycle, pairChains);\n}",
+      "optimalTimeComplexity": "O(N) topological sort and cycle detection",
+      "optimalSpaceComplexity": "O(N)",
+      "suboptimalSolution": "function maximumInvitations(favorite) {\n  const n = favorite.length;\n  const inDeg = new Array(n).fill(0);\n  for (const x of favorite) inDeg[x]++;\n  const q = [];\n  for (let i = 0; i < n; i++) if (inDeg[i] === 0) q.push(i);\n  const maxPath = new Array(n).fill(1);\n  while (q.length > 0) {\n    const u = q.shift();\n    const v = favorite[u];\n    maxPath[v] = Math.max(maxPath[v], maxPath[u] + 1);\n    if (--inDeg[v] === 0) q.push(v);\n  }\n  let maxC = 0, sumPairs = 0;\n  for (let i = 0; i < n; i++) {\n    if (inDeg[i] > 0) {\n      let len = 0, cur = i;\n      while (inDeg[cur] > 0) { inDeg[cur] = 0; len++; cur = favorite[cur]; }\n      if (len === 2) sumPairs += maxPath[i] + maxPath[favorite[i]];\n      else maxC = Math.max(maxC, len);\n    }\n  }\n  return Math.max(maxC, sumPairs);\n}",
+      "suboptimalTimeComplexity": "O(N)",
+      "suboptimalSpaceComplexity": "O(N)",
+      "commonMistakes": [
+        "Failing to realize that multiple mutual 2-cycles with their longest chain arms can all sit at the same table together, while a 3+ cycle must stand alone."
+      ],
+      "hints": [
+        "Case 1: A single cycle of size >= 3 can seat its members (nobody else can be added).",
+        "Case 2: Cycles of size 2 can have linear chains extending from both nodes, and ALL 2-cycles can be combined at the same table!",
+        "Answer is max(max_cycle_len, sum_of_all_2_cycles_with_arms)."
+      ],
+      "testCases": [
+        {
+          "input": "[[2,2,1,2]]",
+          "expectedOutput": "3",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[[1,2,0]]",
+          "expectedOutput": "3",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[[3,0,1,4,1]]",
+          "expectedOutput": "4",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[[1,0]]",
+          "expectedOutput": "2",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[[1,0,1]]",
+          "expectedOutput": "3",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[[1,2,3,0]]",
+          "expectedOutput": "4",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[[1,0,3,2]]",
+          "expectedOutput": "4",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[[1,0,0,2,1,4,7,8,9,6]]",
+          "expectedOutput": "6",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[[1,2,3,4,5,0]]",
+          "expectedOutput": "6",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[[3,0,1,2]]",
+          "expectedOutput": "4",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[[1,0,3,2,5,4,7,6,9,8,11,10,13,12,15,14,17,16,19,18,21,20,23,22,25,24,27,26,29,28,31,30,33,32,35,34,37,36,39,38]]",
+          "expectedOutput": "40",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=40 for complexity verification",
+          "scaleN": 40
+        },
+        {
+          "input": "[[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,0]]",
+          "expectedOutput": "50",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=50 for complexity verification",
+          "scaleN": 50
+        }
+      ]
+    },
+    {
+      "num": 422,
+      "title": "Reachable Nodes In Subdivided Graph",
+      "slug": "reachable-nodes-in-subdivided-graph",
+      "level": 20,
+      "difficulty": "HARD",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 35,
+      "statement": "You are given an undirected graph of `n` nodes (0-indexed) with `edges` where `edges[i] = [ui, vi, cnti]` indicates that there is an edge between nodes `ui` and `vi` with `cnti` new nodes inserted on the edge.\n\nYou start at node `0` and have `maxMoves` moves. In one move, you can walk to an adjacent node on an edge (either original or inserted).\n\nReturn the number of nodes that are reachable from node `0` in at most `maxMoves` moves.",
+      "executionModel": "FUNCTION",
+      "functionName": "reachableNodes",
+      "parameterDefinitions": [
+        {
+          "name": "edges",
+          "type": "number[][]",
+          "description": "Array of [u, v, cnt] edges"
+        },
+        {
+          "name": "maxMoves",
+          "type": "number",
+          "description": "Maximum moves available"
+        },
+        {
+          "name": "n",
+          "type": "number",
+          "description": "Number of original nodes"
+        }
+      ],
+      "returnType": "number",
+      "constraints": [
+        "0 <= edges.length <= min(n * (n - 1) / 2, 10^4)",
+        "edges[i].length == 3",
+        "0 <= ui < vi < n",
+        "0 <= cnti <= 10^4",
+        "0 <= maxMoves <= 10^9",
+        "1 <= n <= 3000"
+      ],
+      "examples": [
+        {
+          "input": "edges = [[0,1,10],[0,2,1],[1,2,2]], maxMoves = 6, n = 3",
+          "output": "13",
+          "explanation": "All 3 original nodes and 10 subdivided nodes can be reached, total 13."
+        },
+        {
+          "input": "edges = [[0,1,4],[1,2,6],[0,2,8],[1,3,1]], maxMoves = 10, n = 4",
+          "output": "23",
+          "explanation": "Reaches all 4 nodes and 19 intermediate nodes = 23."
+        },
+        {
+          "input": "edges = [[1,2,4],[0,2,0]], maxMoves = 0, n = 3",
+          "output": "1",
+          "explanation": "With 0 moves, only start node 0 is reachable."
+        },
+        {
+          "input": "edges = [[0,1,1]], maxMoves = 1, n = 2",
+          "output": "2",
+          "explanation": "Reaches node 0 and 1 intermediate node."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number[][], number, number}\n * @return {number}\n */\nfunction reachableNodes(edges, maxMoves, n) {\n  // Optimal O(E log V) with Dijkstra / O(V + E)\n};\n",
+        "typescript": "function reachableNodes(edges: number[][], maxMoves: number, n: number): number {\n  // Optimal O(E log V) with Dijkstra / O(V + E)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def reachableNodes(self, edges: list[int], maxMoves: int, n: int) -> number:\n        # Optimal O(E log V) with Dijkstra\n        pass\n"
+      },
+      "optimalSolution": "function reachableNodes(edges, maxMoves, n) {\n  const adj = Array.from({ length: n }, () => []);\n  for (const [u, v, cnt] of edges) {\n    adj[u].push([v, cnt]);\n    adj[v].push([u, cnt]);\n  }\n  const dist = new Array(n).fill(Infinity);\n  dist[0] = 0;\n  const queue = [[0, 0]];\n  while (queue.length > 0) {\n    queue.sort((a, b) => a[1] - b[1]);\n    const [u, d] = queue.shift();\n    if (d > dist[u]) continue;\n    for (const [v, cnt] of adj[u]) {\n      const w = cnt + 1;\n      if (d + w < dist[v] && d + w <= maxMoves) {\n        dist[v] = d + w;\n        queue.push([v, dist[v]]);\n      }\n    }\n  }\n  let ans = 0;\n  for (let i = 0; i < n; i++) {\n    if (dist[i] <= maxMoves) ans++;\n  }\n  for (const [u, v, cnt] of edges) {\n    const a = dist[u] <= maxMoves ? maxMoves - dist[u] : 0;\n    const b = dist[v] <= maxMoves ? maxMoves - dist[v] : 0;\n    ans += Math.min(cnt, a + b);\n  }\n  return ans;\n}",
+      "optimalTimeComplexity": "O(E log V) with Dijkstra",
+      "optimalSpaceComplexity": "O(V + E)",
+      "suboptimalSolution": "function reachableNodes(edges, maxMoves, n) {\n  const adj = Array.from({ length: n }, () => []);\n  for (const [u, v, cnt] of edges) {\n    adj[u].push([v, cnt + 1]);\n    adj[v].push([u, cnt + 1]);\n  }\n  const dist = new Array(n).fill(Infinity);\n  dist[0] = 0;\n  const pq = [[0, 0]];\n  while (pq.length > 0) {\n    pq.sort((a, b) => a[1] - b[1]);\n    const [curr, d] = pq.shift();\n    if (d > dist[curr]) continue;\n    for (const [nxt, w] of adj[curr]) {\n      if (d + w < dist[nxt] && d + w <= maxMoves) {\n        dist[nxt] = d + w;\n        pq.push([nxt, dist[nxt]]);\n      }\n    }\n  }\n  let total = dist.filter(d => d <= maxMoves).length;\n  for (const [u, v, cnt] of edges) {\n    const reachU = dist[u] <= maxMoves ? maxMoves - dist[u] : 0;\n    const reachV = dist[v] <= maxMoves ? maxMoves - dist[v] : 0;\n    total += Math.min(cnt, reachU + reachV);\n  }\n  return total;\n}",
+      "suboptimalTimeComplexity": "O(E log V)",
+      "suboptimalSpaceComplexity": "O(V + E)",
+      "commonMistakes": [
+        "Double counting subdivided nodes when reach from u + reach from v > cnt."
+      ],
+      "hints": [
+        "Treat each subdivided edge as a single weighted edge of length cnt + 1.",
+        "Run Dijkstra from node 0 to find the shortest distance to all original nodes.",
+        "On edge (u, v, cnt), the number of reachable inserted nodes is min(cnt, maxMoves - dist[u] + maxMoves - dist[v])."
+      ],
+      "testCases": [
+        {
+          "input": "[[[0,1,10],[0,2,1],[1,2,2]],6,3]",
+          "expectedOutput": "13",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[[[0,1,4],[1,2,6],[0,2,8],[1,3,1]],10,4]",
+          "expectedOutput": "23",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[[[1,2,4],[0,2,0]],0,3]",
+          "expectedOutput": "1",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[[[0,1,1]],1,2]",
+          "expectedOutput": "2",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[[],5,1]",
+          "expectedOutput": "1",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[[[0,1,0]],1,2]",
+          "expectedOutput": "2",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[[[0,1,5]],2,2]",
+          "expectedOutput": "3",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[[[0,1,10],[1,2,10],[0,2,15]],8,3]",
+          "expectedOutput": "17",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[[[0,1,2],[1,2,3],[0,2,1]],4,3]",
+          "expectedOutput": "9",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[[[0,1,100]],50,2]",
+          "expectedOutput": "51",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[[[0,1,5],[1,2,5],[2,3,5],[3,4,5],[4,5,5],[5,6,5],[6,7,5],[7,8,5],[8,9,5],[9,10,5],[10,11,5],[11,12,5],[12,13,5],[13,14,5],[14,15,5],[15,16,5],[16,17,5],[17,18,5],[18,19,5],[19,20,5]],25,21]",
+          "expectedOutput": "26",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=20 for complexity verification",
+          "scaleN": 20
+        },
+        {
+          "input": "[[[0,1,10],[0,2,10],[0,3,10],[0,4,10],[0,5,10],[0,6,10],[0,7,10],[0,8,10],[0,9,10],[0,10,10],[0,11,10],[0,12,10],[0,13,10],[0,14,10],[0,15,10],[0,16,10],[0,17,10],[0,18,10],[0,19,10],[0,20,10],[0,21,10],[0,22,10],[0,23,10],[0,24,10],[0,25,10],[0,26,10],[0,27,10],[0,28,10],[0,29,10],[0,30,10]],15,31]",
+          "expectedOutput": "331",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=30 for complexity verification",
+          "scaleN": 30
+        }
+      ]
+    },
+    {
+      "num": 423,
+      "title": "Modify Graph Edge Weights",
+      "slug": "modify-graph-edge-weights",
+      "level": 20,
+      "difficulty": "HARD",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 40,
+      "statement": "You are given an undirected weighted connected graph containing `n` nodes labeled from `0` to `n - 1`, and an integer array `edges` where `edges[i] = [ai, bi, wi]` indicates that there is an edge between nodes `ai` and `bi` with weight `wi`.\n\nSome edges have a weight of `-1` (wi = -1), while others have a positive weight (wi >= 1).\n\nYour task is to modify all edges with a weight of `-1` by assigning them positive integer weights in the range `[1, 2 * 10^9]` such that the shortest distance between `source` and `destination` becomes equal to an integer `target`.\n\nReturn an array containing all edges (even unmodified ones) in any order if it is possible, or an empty array if it is impossible.",
+      "executionModel": "FUNCTION",
+      "functionName": "modifiedGraphEdges",
+      "parameterDefinitions": [
+        {
+          "name": "n",
+          "type": "number",
+          "description": "Number of nodes"
+        },
+        {
+          "name": "edges",
+          "type": "number[][]",
+          "description": "Array of [u, v, w] edges"
+        },
+        {
+          "name": "source",
+          "type": "number",
+          "description": "Source node"
+        },
+        {
+          "name": "destination",
+          "type": "number",
+          "description": "Destination node"
+        },
+        {
+          "name": "target",
+          "type": "number",
+          "description": "Target shortest path distance"
+        }
+      ],
+      "returnType": "number[][]",
+      "constraints": [
+        "1 <= n <= 100",
+        "1 <= edges.length <= n * (n - 1) / 2",
+        "edges[i].length == 3",
+        "0 <= ai, bi < n",
+        "wi = -1 or 1 <= wi <= 10^7",
+        "0 <= source, destination < n",
+        "source != destination",
+        "1 <= target <= 10^9"
+      ],
+      "examples": [
+        {
+          "input": "n = 5, edges = [[4,1,-1],[2,0,-1],[0,3,-1],[4,3,-1]], source = 0, destination = 1, target = 5",
+          "output": "[[4,1,1],[2,0,1],[0,3,3],[4,3,1]]",
+          "explanation": "Setting edges correctly gives shortest path 0 -> 3 -> 4 -> 1 of length 3 + 1 + 1 = 5."
+        },
+        {
+          "input": "n = 3, edges = [[0,1,-1],[0,2,5]], source = 0, destination = 2, target = 6",
+          "output": "[]",
+          "explanation": "Direct edge 0 -> 2 already has distance 5 < 6, impossible to make shortest path 6."
+        },
+        {
+          "input": "n = 4, edges = [[1,0,4],[1,2,3],[2,3,5],[0,3,-1]], source = 0, destination = 2, target = 6",
+          "output": "[[1,0,4],[1,2,3],[2,3,5],[0,3,1]]",
+          "explanation": "Shortest path 0 -> 1 -> 2 is 7, wait, 4 + 3 = 7. Setting [0,3] to 1 gives 0 -> 3 -> 2 = 1 + 5 = 6."
+        },
+        {
+          "input": "n = 2, edges = [[0,1,-1]], source = 0, destination = 1, target = 10",
+          "output": "[[0,1,10]]",
+          "explanation": "Set single edge to 10."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number, number[][], number, number, number}\n * @return {number[][]}\n */\nfunction modifiedGraphEdges(n, edges, source, destination, target) {\n  // Optimal O(E * (E log V)) / O(V + E)\n};\n",
+        "typescript": "function modifiedGraphEdges(n: number, edges: number[][], source: number, destination: number, target: number): number[][] {\n  // Optimal O(E * (E log V)) / O(V + E)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def modifiedGraphEdges(self, n: int, edges: list[int], source: int, destination: int, target: int) -> number[][]:\n        # Optimal O(E * (E log V))\n        pass\n"
+      },
+      "optimalSolution": "function modifiedGraphEdges(n, edges, source, destination, target) {\n  function dijkstra(edgesList) {\n    const adj = Array.from({ length: n }, () => []);\n    for (const [u, v, w] of edgesList) {\n      if (w !== -1) {\n        adj[u].push([v, w]);\n        adj[v].push([u, w]);\n      }\n    }\n    const dist = new Array(n).fill(Infinity);\n    dist[source] = 0;\n    const q = [[source, 0]];\n    while (q.length > 0) {\n      q.sort((a, b) => a[1] - b[1]);\n      const [u, d] = q.shift();\n      if (d > dist[u]) continue;\n      for (const [v, w] of adj[u]) {\n        if (d + w < dist[v]) {\n          dist[v] = d + w;\n          q.push([v, dist[v]]);\n        }\n      }\n    }\n    return dist[destination];\n  }\n  let curDist = dijkstra(edges);\n  if (curDist < target) return [];\n  let matched = curDist === target;\n  for (const edge of edges) {\n    if (edge[2] !== -1) continue;\n    if (matched) {\n      edge[2] = 2e9;\n      continue;\n    }\n    edge[2] = 1;\n    const d = dijkstra(edges);\n    if (d <= target) {\n      matched = true;\n      edge[2] += target - d;\n    }\n  }\n  return matched ? edges : [];\n}",
+      "optimalTimeComplexity": "O(E * (E log V))",
+      "optimalSpaceComplexity": "O(V + E)",
+      "suboptimalSolution": "function modifiedGraphEdges(n, edges, source, destination, target) {\n  const dijkstra = (list) => {\n    const adj = Array.from({ length: n }, () => []);\n    for (const [u, v, w] of list) {\n      if (w !== -1) { adj[u].push([v, w]); adj[v].push([u, w]); }\n    }\n    const dist = new Array(n).fill(Infinity);\n    dist[source] = 0;\n    const q = [[source, 0]];\n    while (q.length > 0) {\n      q.sort((a, b) => a[1] - b[1]);\n      const [u, d] = q.shift();\n      if (d > dist[u]) continue;\n      for (const [v, w] of adj[u]) {\n        if (d + w < dist[v]) { dist[v] = d + w; q.push([v, dist[v]]); }\n      }\n    }\n    return dist[destination];\n  };\n  let d = dijkstra(edges);\n  if (d < target) return [];\n  let match = d === target;\n  for (const e of edges) {\n    if (e[2] !== -1) continue;\n    if (match) { e[2] = 2e9; continue; }\n    e[2] = 1;\n    const newD = dijkstra(edges);\n    if (newD <= target) {\n      match = true;\n      e[2] += target - newD;\n    }\n  }\n  return match ? edges : [];\n}",
+      "suboptimalTimeComplexity": "O(E^2 log V)",
+      "suboptimalSpaceComplexity": "O(V + E)",
+      "commonMistakes": [
+        "Assigning random weights to -1 edges rather than incrementally adjusting with Dijkstra."
+      ],
+      "hints": [
+        "First check if shortest path on existing fixed edges is strictly less than target (if so, return []).",
+        "Set -1 edges to 1 one by one. Once shortest distance <= target, increase the current edge weight to make shortest path exactly equal target, and set remaining -1 edges to 2e9."
+      ],
+      "testCases": [
+        {
+          "input": "[5,[[4,1,-1],[2,0,-1],[0,3,-1],[4,3,-1]],0,1,5]",
+          "expectedOutput": "[[4,1,1],[2,0,1],[0,3,1],[4,3,3]]",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[3,[[0,1,-1],[0,2,5]],0,2,6]",
+          "expectedOutput": "[]",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[4,[[1,0,4],[1,2,3],[2,3,5],[0,3,-1]],0,2,6]",
+          "expectedOutput": "[[1,0,4],[1,2,3],[2,3,5],[0,3,1]]",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[2,[[0,1,-1]],0,1,10]",
+          "expectedOutput": "[[0,1,10]]",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[2,[[0,1,5]],0,1,5]",
+          "expectedOutput": "[[0,1,5]]",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[2,[[0,1,5]],0,1,4]",
+          "expectedOutput": "[]",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[3,[[0,1,-1],[1,2,-1]],0,2,2]",
+          "expectedOutput": "[[0,1,1],[1,2,1]]",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[4,[[0,1,-1],[1,2,-1],[3,1,-1],[3,0,2],[0,2,5]],2,3,8]",
+          "expectedOutput": "[]",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[3,[[0,1,1],[1,2,-1],[0,2,10]],0,2,5]",
+          "expectedOutput": "[[0,1,1],[1,2,4],[0,2,10]]",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[4,[[0,1,-1],[2,3,-1]],0,3,5]",
+          "expectedOutput": "[]",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[10,[[0,1,-1],[1,2,-1],[2,3,-1],[3,4,-1],[4,5,-1],[5,6,-1],[6,7,-1],[7,8,-1],[8,9,-1]],0,9,20]",
+          "expectedOutput": "[[0,1,1],[1,2,1],[2,3,1],[3,4,1],[4,5,1],[5,6,1],[6,7,1],[7,8,1],[8,9,12]]",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=1000 for complexity verification",
+          "scaleN": 1000
+        },
+        {
+          "input": "[15,[[0,1,-1],[1,2,2],[2,3,-1],[3,4,2],[4,5,-1],[5,6,2],[6,7,-1],[7,8,2],[8,9,-1],[9,10,2],[10,11,-1],[11,12,2],[12,13,-1],[13,14,2]],0,14,30]",
+          "expectedOutput": "[[0,1,1],[1,2,2],[2,3,1],[3,4,2],[4,5,1],[5,6,2],[6,7,1],[7,8,2],[8,9,1],[9,10,2],[10,11,1],[11,12,2],[12,13,10],[13,14,2]]",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=1000 for complexity verification",
+          "scaleN": 1000
+        }
+      ]
+    },
+    {
+      "num": 424,
+      "title": "Minimum Obstacle Removal to Reach Corner",
+      "slug": "minimum-obstacle-removal-to-reach-corner",
+      "level": 20,
+      "difficulty": "HARD",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 25,
+      "statement": "You are given a 0-indexed 2D integer array `grid` of size `m x n`. Each cell has one of two values:\n- `0` represents an empty cell,\n- `1` represents an obstacle that may be removed.\n\nYou can move up, down, left, or right from and to an empty cell.\n\nReturn the minimum number of obstacles to remove so you can move from the upper left corner `(0, 0)` to the lower right corner `(m - 1, n - 1)`.",
+      "executionModel": "FUNCTION",
+      "functionName": "minimumObstacles",
+      "parameterDefinitions": [
+        {
+          "name": "grid",
+          "type": "number[][]",
+          "description": "m x n grid with 0 (empty) and 1 (obstacle)"
+        }
+      ],
+      "returnType": "number",
+      "constraints": [
+        "m == grid.length",
+        "n == grid[i].length",
+        "1 <= m, n <= 10^5",
+        "2 <= m * n <= 10^5",
+        "grid[i][j] is either 0 or 1",
+        "grid[0][0] == grid[m - 1][n - 1] == 0"
+      ],
+      "examples": [
+        {
+          "input": "grid = [[0,1,1],[1,1,0],[1,1,0]]",
+          "output": "2",
+          "explanation": "Remove obstacles at (0,1) and (0,2) or (1,2) to reach (2,2) with 2 removals."
+        },
+        {
+          "input": "grid = [[0,1,0,0,0],[0,1,0,1,0],[0,0,0,1,0]]",
+          "output": "0",
+          "explanation": "Path through 0s exists without removing any obstacle."
+        },
+        {
+          "input": "grid = [[0,0],[0,0]]",
+          "output": "0",
+          "explanation": "All empty cells."
+        },
+        {
+          "input": "grid = [[0,1],[1,0]]",
+          "output": "1",
+          "explanation": "Remove 1 obstacle."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number[][]}\n * @return {number}\n */\nfunction minimumObstacles(grid) {\n  // Optimal O(m * n) with 0-1 BFS / O(m * n)\n};\n",
+        "typescript": "function minimumObstacles(grid: number[][]): number {\n  // Optimal O(m * n) with 0-1 BFS / O(m * n)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def minimumObstacles(self, grid: list[int]) -> number:\n        # Optimal O(m * n) with 0-1 BFS\n        pass\n"
+      },
+      "optimalSolution": "function minimumObstacles(grid) {\n  const m = grid.length, n = grid[0].length;\n  const dist = Array.from({ length: m }, () => new Array(n).fill(Infinity));\n  dist[0][0] = 0;\n  const deque = [[0, 0]];\n  const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];\n  while (deque.length > 0) {\n    const [r, c] = deque.shift();\n    const d = dist[r][c];\n    if (r === m - 1 && c === n - 1) return d;\n    for (const [dr, dc] of dirs) {\n      const nr = r + dr, nc = c + dc;\n      if (nr >= 0 && nr < m && nc >= 0 && nc < n) {\n        const cost = grid[nr][nc];\n        if (d + cost < dist[nr][nc]) {\n          dist[nr][nc] = d + cost;\n          if (cost === 0) deque.unshift([nr, nc]);\n          else deque.push([nr, nc]);\n        }\n      }\n    }\n  }\n  return dist[m - 1][n - 1];\n}",
+      "optimalTimeComplexity": "O(m * n) with 0-1 BFS",
+      "optimalSpaceComplexity": "O(m * n)",
+      "suboptimalSolution": "function minimumObstacles(grid) {\n  const m = grid.length, n = grid[0].length;\n  const dist = Array.from({ length: m }, () => new Array(n).fill(Infinity));\n  dist[0][0] = 0;\n  const pq = [[0, 0, 0]];\n  const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];\n  while (pq.length > 0) {\n    pq.sort((a, b) => a[0] - b[0]);\n    const [d, r, c] = pq.shift();\n    if (d > dist[r][c]) continue;\n    if (r === m - 1 && c === n - 1) return d;\n    for (const [dr, dc] of dirs) {\n      const nr = r + dr, nc = c + dc;\n      if (nr >= 0 && nr < m && nc >= 0 && nc < n) {\n        const cost = grid[nr][nc];\n        if (d + cost < dist[nr][nc]) {\n          dist[nr][nc] = d + cost;\n          pq.push([dist[nr][nc], nr, nc]);\n        }\n      }\n    }\n  }\n  return dist[m - 1][n - 1];\n}",
+      "suboptimalTimeComplexity": "O(m * n log(m * n))",
+      "suboptimalSpaceComplexity": "O(m * n)",
+      "commonMistakes": [
+        "Using standard priority queue when 0-1 BFS with a deque runs in pure O(V + E) time."
+      ],
+      "hints": [
+        "Moving into an empty cell costs 0, moving into an obstacle costs 1.",
+        "0-1 BFS finds the shortest path in linear O(m * n) time."
+      ],
+      "testCases": [
+        {
+          "input": "[[[0,1,1],[1,1,0],[1,1,0]]]",
+          "expectedOutput": "2",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[[[0,1,0,0,0],[0,1,0,1,0],[0,0,0,1,0]]]",
+          "expectedOutput": "0",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[[[0,0],[0,0]]]",
+          "expectedOutput": "0",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[[[0,1],[1,0]]]",
+          "expectedOutput": "1",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[[[0,1,0]]]",
+          "expectedOutput": "1",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[[[0],[1],[0]]]",
+          "expectedOutput": "1",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[[[0,1],[0,0]]]",
+          "expectedOutput": "0",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[[[0,1,1,1],[1,1,1,1],[1,1,1,0]]]",
+          "expectedOutput": "4",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[[[0,1,1,1,1],[1,1,1,1,1],[0,0,0,0,0]]]",
+          "expectedOutput": "1",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[[[0,0,1],[1,1,1],[1,0,0]]]",
+          "expectedOutput": "1",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[[[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0]]]",
+          "expectedOutput": "28",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=30 for complexity verification",
+          "scaleN": 30
+        },
+        {
+          "input": "[[[0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],[0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0],[0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0],[0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],[0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0],[0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0],[0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],[0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0],[0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0],[0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],[0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0],[0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0],[0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],[0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0],[0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0],[0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],[0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0],[0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0],[0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],[0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0],[0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0],[0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],[0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0],[0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0],[0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],[0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0],[0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0],[0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],[0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0],[0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0],[0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],[0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0],[0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0],[0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],[0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0],[0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0],[0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],[0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0],[0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0],[0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0]]]",
+          "expectedOutput": "0",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=40 for complexity verification",
+          "scaleN": 40
+        }
+      ]
+    },
+    {
+      "num": 425,
+      "title": "Minimum Number of Visited Cells in a Grid",
+      "slug": "minimum-number-of-visited-cells-in-a-grid",
+      "level": 20,
+      "difficulty": "HARD",
+      "topic": "Shortest Paths & Advanced Graphs",
+      "patternSlug": "advanced-graphs",
+      "estimatedTimeMin": 35,
+      "statement": "You are given a 0-indexed `m x n` integer matrix `grid`. Your initial position is at the top-left cell `(0, 0)`.\n\nStarting from the cell `(i, j)`, you can move to one of the following cells:\n- Cells `(i, k)` with `j < k <= min(j + grid[i][j], n - 1)` (i.e. rightward movement)\n- Cells `(k, j)` with `i < k <= min(i + grid[i][j], m - 1)` (i.e. downward movement)\n\nReturn the minimum number of cells you need to visit to reach the bottom-right cell `(m - 1, n - 1)`. If there is no valid path, return `-1`.",
+      "executionModel": "FUNCTION",
+      "functionName": "minimumVisitedCells",
+      "parameterDefinitions": [
+        {
+          "name": "grid",
+          "type": "number[][]",
+          "description": "m x n grid of jump ranges"
+        }
+      ],
+      "returnType": "number",
+      "constraints": [
+        "m == grid.length",
+        "n == grid[i].length",
+        "1 <= m, n <= 10^5",
+        "1 <= m * n <= 10^5",
+        "0 <= grid[i][j] < m * n",
+        "grid[m - 1][n - 1] == 0"
+      ],
+      "examples": [
+        {
+          "input": "grid = [[3,4,2,1],[4,2,3,1],[2,1,0,0],[2,4,0,0]]",
+          "output": "4",
+          "explanation": "Path (0,0) -> (0,1) -> (1,1) -> (3,3) visits 4 cells."
+        },
+        {
+          "input": "grid = [[3,4,2,1],[4,2,1,1],[2,1,1,0],[3,4,1,0]]",
+          "output": "3",
+          "explanation": "Path (0,0) -> (3,0) -> (3,3) visits 3 cells."
+        },
+        {
+          "input": "grid = [[2,1,0],[1,0,0]]",
+          "output": "-1",
+          "explanation": "Cannot reach (1,2)."
+        },
+        {
+          "input": "grid = [[0]]",
+          "output": "1",
+          "explanation": "Already at the destination, 1 cell visited."
+        }
+      ],
+      "starterTemplates": {
+        "javascript": "/**\n * @param {number[][]}\n * @return {number}\n */\nfunction minimumVisitedCells(grid) {\n  // Optimal O(m * n * alpha(m * n)) with Disjoint-Set union-find skip list / O(m * n)\n};\n",
+        "typescript": "function minimumVisitedCells(grid: number[][]): number {\n  // Optimal O(m * n * alpha(m * n)) with Disjoint-Set union-find skip list / O(m * n)\n  throw new Error(\"Not implemented\");\n}\n",
+        "python": "class Solution:\n    def minimumVisitedCells(self, grid: list[int]) -> number:\n        # Optimal O(m * n * alpha(m * n)) with Disjoint-Set union-find skip list\n        pass\n"
+      },
+      "optimalSolution": "function minimumVisitedCells(grid) {\n  const m = grid.length, n = grid[0].length;\n  if (m === 1 && n === 1) return 1;\n  const dist = Array.from({ length: m }, () => new Array(n).fill(-1));\n  dist[0][0] = 1;\n  const rowNext = Array.from({ length: m }, () => Array.from({ length: n + 1 }, (_, i) => i));\n  const colNext = Array.from({ length: n }, () => Array.from({ length: m + 1 }, (_, i) => i));\n  function findRow(r, c) {\n    if (rowNext[r][c] === c) return c;\n    return rowNext[r][c] = findRow(r, rowNext[r][c]);\n  }\n  function findCol(c, r) {\n    if (colNext[c][r] === r) return r;\n    return colNext[c][r] = findCol(c, colNext[c][r]);\n  }\n  const queue = [[0, 0]];\n  rowNext[0][0] = 1;\n  colNext[0][0] = 1;\n  while (queue.length > 0) {\n    const [r, c] = queue.shift();\n    const d = dist[r][c];\n    const maxC = Math.min(n - 1, c + grid[r][c]);\n    for (let nc = findRow(r, c + 1); nc <= maxC; nc = findRow(r, nc + 1)) {\n      if (dist[r][nc] === -1) {\n        dist[r][nc] = d + 1;\n        if (r === m - 1 && nc === n - 1) return d + 1;\n        queue.push([r, nc]);\n      }\n      rowNext[r][nc] = nc + 1;\n    }\n    const maxR = Math.min(m - 1, r + grid[r][c]);\n    for (let nr = findCol(c, r + 1); nr <= maxR; nr = findCol(c, nr + 1)) {\n      if (dist[nr][c] === -1) {\n        dist[nr][c] = d + 1;\n        if (nr === m - 1 && c === n - 1) return d + 1;\n        queue.push([nr, c]);\n      }\n      colNext[c][nr] = nr + 1;\n    }\n  }\n  return dist[m - 1][n - 1];\n}",
+      "optimalTimeComplexity": "O(m * n * alpha(m * n)) with Disjoint-Set union-find skip list",
+      "optimalSpaceComplexity": "O(m * n)",
+      "suboptimalSolution": "function minimumVisitedCells(grid) {\n  const m = grid.length, n = grid[0].length;\n  if (m === 1 && n === 1) return 1;\n  const dist = Array.from({ length: m }, () => new Array(n).fill(-1));\n  dist[0][0] = 1;\n  const q = [[0, 0]];\n  while (q.length > 0) {\n    const [r, c] = q.shift();\n    const d = dist[r][c];\n    const maxC = Math.min(n - 1, c + grid[r][c]);\n    for (let nc = c + 1; nc <= maxC; nc++) {\n      if (dist[r][nc] === -1) {\n        dist[r][nc] = d + 1;\n        if (r === m - 1 && nc === n - 1) return d + 1;\n        q.push([r, nc]);\n      }\n    }\n    const maxR = Math.min(m - 1, r + grid[r][c]);\n    for (let nr = r + 1; nr <= maxR; nr++) {\n      if (dist[nr][c] === -1) {\n        dist[nr][c] = d + 1;\n        if (nr === m - 1 && c === n - 1) return d + 1;\n        q.push([nr, c]);\n      }\n    }\n  }\n  return dist[m - 1][n - 1];\n}",
+      "suboptimalTimeComplexity": "O(m * n * (m + n))",
+      "suboptimalSpaceComplexity": "O(m * n)",
+      "commonMistakes": [
+        "Re-scanning visited cells on row and column sweeps leading to O(m*n*(m+n)) TLE."
+      ],
+      "hints": [
+        "Use Disjoint Set Union (DSU) along each row and column to jump over already visited cells in amortized O(alpha(N)) time."
+      ],
+      "testCases": [
+        {
+          "input": "[[[3,4,2,1],[4,2,3,1],[2,1,0,0],[2,4,0,0]]]",
+          "expectedOutput": "4",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 1"
+        },
+        {
+          "input": "[[[3,4,2,1],[4,2,1,1],[2,1,1,0],[3,4,1,0]]]",
+          "expectedOutput": "3",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 2"
+        },
+        {
+          "input": "[[[2,1,0],[1,0,0]]]",
+          "expectedOutput": "-1",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 3"
+        },
+        {
+          "input": "[[[0]]]",
+          "expectedOutput": "1",
+          "isHidden": false,
+          "tier": "FUNCTIONAL",
+          "explanation": "Standard functional test case 4"
+        },
+        {
+          "input": "[[[1,0]]]",
+          "expectedOutput": "2",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 1"
+        },
+        {
+          "input": "[[[1],[0]]]",
+          "expectedOutput": "2",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 2"
+        },
+        {
+          "input": "[[[0,0],[0,0]]]",
+          "expectedOutput": "-1",
+          "isHidden": true,
+          "tier": "BOUNDARY",
+          "explanation": "Boundary/edge condition 3"
+        },
+        {
+          "input": "[[[2,0,0],[0,0,0],[0,0,0]]]",
+          "expectedOutput": "-1",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 1"
+        },
+        {
+          "input": "[[[1,1,1],[1,1,1],[1,1,0]]]",
+          "expectedOutput": "5",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 2"
+        },
+        {
+          "input": "[[[5,4,3,2,1,0]]]",
+          "expectedOutput": "2",
+          "isHidden": true,
+          "tier": "ADVERSARIAL",
+          "explanation": "Adversarial / counter-example test 3"
+        },
+        {
+          "input": "[[[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0]]]",
+          "expectedOutput": "31",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=30 for complexity verification",
+          "scaleN": 30
+        },
+        {
+          "input": "[[[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,0],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,0],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,0],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,0],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,0],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,0],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,0],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,0],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,0],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,0],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,0],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,0],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,0],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,0],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,0],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,0],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,0],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,0],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,0],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,0],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,0],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,0],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,0],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,0],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,0],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,0],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,0],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,0],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,0],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,0],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,0],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,0],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,0],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,0],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,0],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,0],[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,0],[2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,0],[3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,0],[4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,0]]]",
+          "expectedOutput": "22",
+          "isHidden": true,
+          "tier": "STRESS",
+          "explanation": "Stress test scale N=40 for complexity verification",
+          "scaleN": 40
+        }
+      ]
+    }
+  ]
+}

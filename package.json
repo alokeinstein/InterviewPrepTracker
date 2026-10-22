@@ -11,7 +11,7 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:seed": "node --loader ts-node/esm prisma/seed.ts",
-    "test": "npx tsx --test tests/interview-os.test.ts tests/e2e-execution.test.ts tests/arena-optimality-benchmark.test.ts"
+    "test": "npx tsx --test tests/interview-os.test.ts tests/e2e-execution.test.ts tests/arena-optimality-benchmark.test.ts tests/design-execution.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

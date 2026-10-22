@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/Badge';
 import { LevelCardGrid, LevelInfo } from '@/components/dsa/LevelCardGrid';
 import { Code2, ArrowRight, Clock, CheckCircle2, Search, Filter, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 
+import { notFound, redirect } from 'next/navigation';
+
 export const revalidate = 0;
 
 const LEVEL_TITLES: Record<number, { title: string; topic: string }> = {
@@ -40,15 +42,17 @@ export default async function DsaArenaPage({
   searchParams: Promise<{ level?: string; difficulty?: string; q?: string; page?: string; viewAll?: string }>;
 }) {
   const params = await searchParams;
-  const levelFilter = params.level ? parseInt(params.level) : undefined;
+  if (params.level) {
+    redirect(`/levels/${params.level}`);
+  }
+
   const difficultyFilter = params.difficulty as any;
   const searchQuery = params.q?.trim();
   const page = Math.max(1, parseInt(params.page || '1'));
   const isViewAll = params.viewAll === 'true';
-  const pageSize = levelFilter ? 100 : (isViewAll ? 500 : 48);
+  const pageSize = isViewAll ? 500 : 48;
 
   const where: any = {};
-  if (levelFilter) where.level = levelFilter;
   if (difficultyFilter) where.difficulty = difficultyFilter;
   if (searchQuery) where.title = { contains: searchQuery, mode: 'insensitive' };
 
@@ -63,7 +67,7 @@ export default async function DsaArenaPage({
     prisma.dsaProblem.findMany({
       where,
       orderBy: { leetcodeId: 'asc' },
-      skip: levelFilter || isViewAll ? 0 : (page - 1) * pageSize,
+      skip: isViewAll ? 0 : (page - 1) * pageSize,
       take: pageSize,
       include: { pattern: true },
     }),
@@ -136,7 +140,6 @@ export default async function DsaArenaPage({
         {/* Global Search & Filters */}
         <div className="flex items-center gap-2 flex-wrap">
           <form method="GET" action="/dsa" className="flex items-center gap-2">
-            {levelFilter && <input type="hidden" name="level" value={levelFilter} />}
             {difficultyFilter && <input type="hidden" name="difficulty" value={difficultyFilter} />}
             <div className="relative">
               <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-2.5" />
@@ -154,11 +157,16 @@ export default async function DsaArenaPage({
             >
               Search
             </button>
+            {(searchQuery || difficultyFilter) && (
+              <Link href="/dsa" className="text-xs text-muted-foreground hover:text-foreground underline font-mono">
+                Clear
+              </Link>
+            )}
           </form>
 
           {/* Difficulty Filter Badges */}
           <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-lg border border-border">
-            <Link href={`/dsa${levelFilter ? `?level=${levelFilter}` : ''}`}>
+            <Link href="/dsa">
               <Badge
                 variant={!difficultyFilter ? 'default' : 'outline'}
                 className="text-[10px] cursor-pointer"
@@ -166,7 +174,7 @@ export default async function DsaArenaPage({
                 All
               </Badge>
             </Link>
-            <Link href={`/dsa?difficulty=EASY${levelFilter ? `&level=${levelFilter}` : ''}`}>
+            <Link href="/dsa?difficulty=EASY">
               <Badge
                 variant={difficultyFilter === 'EASY' ? 'success' : 'outline'}
                 className="text-[10px] cursor-pointer text-emerald-400"
@@ -174,7 +182,7 @@ export default async function DsaArenaPage({
                 Easy
               </Badge>
             </Link>
-            <Link href={`/dsa?difficulty=MEDIUM${levelFilter ? `&level=${levelFilter}` : ''}`}>
+            <Link href="/dsa?difficulty=MEDIUM">
               <Badge
                 variant={difficultyFilter === 'MEDIUM' ? 'warning' : 'outline'}
                 className="text-[10px] cursor-pointer text-amber-400"
@@ -182,7 +190,7 @@ export default async function DsaArenaPage({
                 Med
               </Badge>
             </Link>
-            <Link href={`/dsa?difficulty=HARD${levelFilter ? `&level=${levelFilter}` : ''}`}>
+            <Link href="/dsa?difficulty=HARD">
               <Badge
                 variant={difficultyFilter === 'HARD' ? 'destructive' : 'outline'}
                 className="text-[10px] cursor-pointer text-rose-400"
@@ -200,34 +208,23 @@ export default async function DsaArenaPage({
           <h2 className="text-base font-bold tracking-tight text-foreground flex items-center gap-2">
             <span>Curriculum Progression</span>
             <span className="text-xs font-mono text-muted-foreground font-normal">
-              (Click a card to filter)
+              (Click any card to open dedicated level workspace)
             </span>
           </h2>
-          {levelFilter && (
-            <Link
-              href="/dsa"
-              className="text-xs text-primary hover:underline font-medium"
-            >
-              Reset to all levels
-            </Link>
-          )}
         </div>
         <LevelCardGrid
           levels={levelsInfo}
-          selectedLevel={levelFilter}
           totalSolved={totalSolvedCount}
           totalProblems={totalCatalogCount}
         />
       </section>
 
-      {/* Problem Grid & Table Header */}
+      {/* Global Problem Catalog Section */}
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
           <div className="flex items-center gap-2">
             <h3 className="text-base font-bold text-foreground">
-              {levelFilter 
-                ? `Level ${levelFilter}: ${LEVEL_TITLES[levelFilter]?.title || ''}` 
-                : 'All Curriculum Problems'}
+              All Curriculum Problems
             </h3>
             <Badge variant="outline" className="font-mono text-xs">
               Showing {problems.length} of {filteredCount}
@@ -236,14 +233,12 @@ export default async function DsaArenaPage({
 
           {/* View mode toggle */}
           <div className="flex items-center gap-2 text-xs">
-            {!levelFilter && (
-              <Link
-                href={isViewAll ? '/dsa' : '/dsa?viewAll=true'}
-                className="text-muted-foreground hover:text-foreground transition underline font-mono text-xs"
-              >
-                {isViewAll ? 'Paginated View (48 / page)' : 'View All 498 Problems'}
-              </Link>
-            )}
+            <Link
+              href={isViewAll ? '/dsa' : '/dsa?viewAll=true'}
+              className="text-muted-foreground hover:text-foreground transition underline font-mono text-xs"
+            >
+              {isViewAll ? 'Paginated View (48 / page)' : 'View All 498 Problems'}
+            </Link>
           </div>
         </div>
 
@@ -312,8 +307,8 @@ export default async function DsaArenaPage({
           })}
         </div>
 
-        {/* Pagination when viewing all */}
-        {!levelFilter && !isViewAll && totalPages > 1 && (
+        {/* Pagination when viewing catalog */}
+        {!isViewAll && totalPages > 1 && (
           <div className="flex items-center justify-center gap-3 pt-6 border-t border-border">
             <Link
               href={`/dsa?page=${Math.max(1, page - 1)}${difficultyFilter ? `&difficulty=${difficultyFilter}` : ''}${searchQuery ? `&q=${searchQuery}` : ''}`}

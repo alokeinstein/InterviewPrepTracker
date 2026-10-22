@@ -41,6 +41,7 @@ enum RelationType {
 
 enum ExecutionModel {
   FUNCTION
+  DESIGN
   STDIN_STDOUT
 }
 
@@ -59,6 +60,12 @@ enum Severity {
   LOW
   MEDIUM
   HIGH
+}
+
+enum PracticeMode {
+  CODE
+  HAND
+  MENTAL
 }
 
 model User {
@@ -245,6 +252,9 @@ model DsaProblem {
   optimalSolution        String?          @db.Text
   optimalTimeComplexity  String?
   optimalSpaceComplexity String?
+  suboptimalSolution        String?          @db.Text
+  suboptimalTimeComplexity  String?
+  suboptimalSpaceComplexity String?
   optimalRuntimeMs       Float            @default(45.0)
   maxAllowedRuntimeMs    Float            @default(1000.0)
   commonMistakes         String[]
@@ -334,19 +344,25 @@ model RevisionItem {
   concept          Concept?          @relation(fields: [conceptId], references: [id], onDelete: Cascade)
   mistakeId        String?
   mistake          MistakeEntry?     @relation(fields: [mistakeId], references: [id], onDelete: Cascade)
-  repetitionNumber Int               @default(0)
-  intervalDays     Int               @default(1)
-  easeFactor       Float             @default(2.5)
-  nextReviewDate   DateTime
-  lastReviewDate   DateTime?
-  stabilityScore   Float             @default(0.0)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  repetitionNumber    Int               @default(0)
+  intervalDays        Int               @default(1)
+  easeFactor          Float             @default(2.5)
+  nextReviewDate      DateTime
+  lastReviewDate      DateTime?
+  stabilityScore      Float             @default(0.0)
+  codePracticeCount   Int               @default(0)
+  handPracticeCount   Int               @default(0)
+  mentalPracticeCount Int               @default(0)
+  recommendedMode     PracticeMode      @default(CODE)
+  currentStage        Int               @default(0)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 
   attempts         RevisionAttempt[]
 
   @@index([userId, nextReviewDate, itemType])
   @@index([userId, itemType])
+  @@index([userId, dsaProblemId])
 }
 
 model RevisionAttempt {
@@ -354,6 +370,9 @@ model RevisionAttempt {
   revisionItemId     String
   revisionItem       RevisionItem @relation(fields: [revisionItemId], references: [id], onDelete: Cascade)
   qualityScore       Int
+  mode               PracticeMode @default(CODE)
+  struggled          Boolean      @default(false)
+  notes              String?      @db.Text
   recalledInvariants Boolean      @default(false)
   durationSec        Int          @default(0)
   createdAt          DateTime     @default(now())
