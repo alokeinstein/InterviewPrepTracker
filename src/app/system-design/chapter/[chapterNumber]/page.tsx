@@ -1,6 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { getServerAuth } from '@/lib/auth';
 import { ChapterReader } from '@/features/system-design/ChapterReader';
 
 export const revalidate = 0;
@@ -17,7 +18,8 @@ export default async function ChapterPage({
     notFound();
   }
 
-  const user = await prisma.user.findFirst();
+  const auth = await getServerAuth();
+  const user = auth?.user;
 
   const chapter = await prisma.chapter.findUnique({
     where: { chapterNumber: chNum },

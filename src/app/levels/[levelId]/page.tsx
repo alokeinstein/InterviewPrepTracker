@@ -2,149 +2,29 @@ import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { getServerAuth } from '@/lib/auth';
 import { SpacedRepetitionService } from '@/services/revision/spacedRepetitionService';
-import { ProblemCard, ProblemTelemetry } from '@/components/dsa/ProblemCard';
+import { ProblemTelemetry } from '@/components/dsa/ProblemCard';
+import { LevelProblemGrid, LevelProblemItem, ViewMode } from '@/components/dsa/LevelProblemGrid';
+import { LEVEL_METADATA } from '@/lib/dsa/levelMetadata';
 import { Badge } from '@/components/ui/Badge';
-import { Card } from '@/components/ui/Card';
 import { 
   ChevronLeft, 
   ChevronRight, 
   Search, 
-  Filter, 
   CheckCircle2, 
-  Clock, 
   Flame, 
-  RotateCcw,
-  BookOpen,
   ArrowLeft
 } from 'lucide-react';
 
 export const revalidate = 0;
-
-const LEVEL_METADATA: Record<number, { title: string; topic: string; description: string }> = {
-  1: { 
-    title: "Fundamentals & Easy Arrays", 
-    topic: "Array Manipulation & In-Place Traversal",
-    description: "Master two-pointer passes, prefix running accumulators, frequency tables, and linear scans." 
-  },
-  2: { 
-    title: "Hashing, Prefix Sum & Frequency", 
-    topic: "Hash Maps & Invariant Running Sums",
-    description: "Harness O(1) hash tables, remainder divisibility invariants, and prefix difference subarrays." 
-  },
-  3: { 
-    title: "Two Pointers", 
-    topic: "Opposite & Fast/Slow Convergence",
-    description: "Converging inward pointers on sorted sequences, container water bounds, and partitioning." 
-  },
-  4: { 
-    title: "Sliding Window", 
-    topic: "Dynamic & Fixed Subarrays",
-    description: "Maintain window contraction invariants and frequency state constraints in O(N)." 
-  },
-  5: { 
-    title: "Binary Search Basics", 
-    topic: "Monotonic Predicates & Answer Space",
-    description: "Discover exact bounds, rotated array pivot discovery, and monotonic boolean predicates." 
-  },
-  6: { 
-    title: "Linked List Fundamentals", 
-    topic: "Pointers Reversal & Cycle Detection",
-    description: "Manipulate node pointers in-place, apply Floyd's tortoise/hare cycle algorithms, and merge lists." 
-  },
-  7: { 
-    title: "Stack, Queue & Monotonic Stack", 
-    topic: "LIFO Ordering & Next Greater Element",
-    description: "Next Greater Element queries, parenthetical validation, and monotonic boundary spans." 
-  },
-  8: { 
-    title: "Intervals & Greedy", 
-    topic: "Interval Scheduling & Merging",
-    description: "Sort by boundary timestamps, identify overlap intersections, and make optimal local choices." 
-  },
-  9: { 
-    title: "Heap / Priority Queue / Top K", 
-    topic: "Top-K Elements & Stream Medians",
-    description: "Min/Max heap maintenance, multi-way stream merges, and running continuous median tracking." 
-  },
-  10: { 
-    title: "Trees: DFS/BFS Foundations", 
-    topic: "Tree Recursion & Level Traversals",
-    description: "Binary tree recursive induction, lowest common ancestors, and queue-based BFS layer walks." 
-  },
-  11: { 
-    title: "Trees: Advanced", 
-    topic: "Tree DP & Serialization",
-    description: "Diameter propagation, path sum dynamic programming, and preorder/inorder tree reconstruction." 
-  },
-  12: { 
-    title: "Backtracking: Subsets & Permutations", 
-    topic: "State Space Exploration & Pruning",
-    description: "Systematic branch enumeration, decision state backtracking, and combinatorial constraint pruning." 
-  },
-  13: { 
-    title: "Matrix & Grid Traversal", 
-    topic: "2D Flood Fill & Grid BFS",
-    description: "Island component connectivity, matrix in-place rotation, and multi-source grid BFS." 
-  },
-  14: { 
-    title: "Graph BFS/DFS", 
-    topic: "Adjacency Graphs & Bipartite Verification",
-    description: "Unweighted shortest paths, cycle detection in directed graphs, and graph coloring." 
-  },
-  15: { 
-    title: "Topological Sort & Union Find", 
-    topic: "DAG Dependency Resolution & DSU",
-    description: "Kahn's in-degree topological order, cycle detection in DAGs, and Disjoint Set Union with rank." 
-  },
-  16: { 
-    title: "Greedy & Advanced Array Patterns", 
-    topic: "Kadane's & Stock State Machines",
-    description: "Maximum contiguous subarray sums, cyclic array index positioning, and greedy peak jumping." 
-  },
-  17: { 
-    title: "Dynamic Programming I: 1D", 
-    topic: "Linear Recurrence & State Tabulation",
-    description: "Identify subproblems, formulate transition equations, and optimize space from O(N) to O(1)." 
-  },
-  18: { 
-    title: "Dynamic Programming II: 2D & Strings", 
-    topic: "LCS, Edit Distance & Grid DP",
-    description: "Matrix grid paths, longest common subsequences, and Levenshtein edit distance transitions." 
-  },
-  19: { 
-    title: "Advanced DP & State Machines", 
-    topic: "Game Theory Minimax & Bitmask DP",
-    description: "Optimal play decision trees, bitmask subset representations, and multi-state trading automata." 
-  },
-  20: { 
-    title: "Advanced Graphs & Shortest Paths", 
-    topic: "Dijkstra, Bellman-Ford & Bridges",
-    description: "Weighted single-source shortest paths, negative cycle detection, and Tarjan's bridge discovery." 
-  },
-  21: { 
-    title: "Advanced Arrays & Graph Extensions", 
-    topic: "Boyer-Moore Voting & Range Queries",
-    description: "Majority element linear voting, sweep-line coordinate geometry, and multi-dimensional queries." 
-  },
-  22: { 
-    title: "Advanced Binary Search, Trie & String", 
-    topic: "Prefix Trees & Continuous Predicates",
-    description: "Trie prefix structures, search suggestion engines, and binary search on continuous answers." 
-  },
-  23: { 
-    title: "Advanced String, Design & Intervals", 
-    topic: "Enterprise System Data Structures",
-    description: "LRU/LFU caching structures, circular ring buffers, and flight booking timeline difference arrays." 
-  },
-};
 
 export default async function DedicatedLevelPage({
   params,
   searchParams,
 }: {
   params: Promise<{ levelId: string }>;
-  searchParams: Promise<{ difficulty?: string; q?: string; status?: string }>;
+  searchParams: Promise<{ difficulty?: string; q?: string; status?: string; view?: string }>;
 }) {
   const { levelId } = await params;
   const levelNum = parseInt(levelId);
@@ -153,11 +33,12 @@ export default async function DedicatedLevelPage({
     notFound();
   }
 
-  const { difficulty, q: searchQuery, status: statusFilter } = await searchParams;
+  const { difficulty, q: searchQuery, status: statusFilter, view: viewParam } = await searchParams;
 
-  // 1. Fetch user for telemetry
-  const user = await prisma.user.findFirst();
-  const userId = user?.id || 'user-default-1';
+  // 1. Fetch user for telemetry from authenticated session
+  const auth = await getServerAuth();
+  const userId = auth?.user?.id;
+  const isAuthenticated = Boolean(userId);
 
   // 2. Fetch all problems in this level
   const problems = await prisma.dsaProblem.findMany({
@@ -168,21 +49,25 @@ export default async function DedicatedLevelPage({
 
   const problemIds = problems.map((p) => p.id);
 
-  // 3. Fetch submissions & telemetry in parallel
+  // 3. Fetch submissions & telemetry in parallel (empty for unauthenticated guests)
   const [submissions, telemetryMap] = await Promise.all([
-    prisma.dsaSubmission.findMany({
-      where: {
-        userId,
-        problemId: { in: problemIds },
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        problemId: true,
-        status: true,
-        optimalityScore: true,
-      },
-    }),
-    SpacedRepetitionService.getBatchTelemetry(userId, problemIds),
+    userId
+      ? prisma.dsaSubmission.findMany({
+          where: {
+            userId,
+            problemId: { in: problemIds },
+          },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            problemId: true,
+            status: true,
+            optimalityScore: true,
+          },
+        })
+      : Promise.resolve([]),
+    userId
+      ? SpacedRepetitionService.getBatchTelemetry(userId, problemIds)
+      : Promise.resolve(new Map()),
   ]);
 
   // Aggregate user solve statuses & highest optimality scores
@@ -239,10 +124,63 @@ export default async function DedicatedLevelPage({
     title: `Level ${levelNum}`,
     topic: 'Algorithmic Mastery',
     description: 'Systematic pattern progression and test suite validation.',
+    concepts: [],
   };
 
   const prevLevel = levelNum > 1 ? levelNum - 1 : null;
   const nextLevel = levelNum < 23 ? levelNum + 1 : null;
+
+  // Transform filtered problems for LevelProblemGrid
+  const problemItems: LevelProblemItem[] = filteredProblems.map((prob) => {
+    const solveStatus = solvedMap.get(prob.id);
+    const telem = telemetryMap.get(prob.id);
+
+    const initialTelemetry: ProblemTelemetry = telem
+      ? {
+          totalPracticed: telem.totalPracticed,
+          codeCount: telem.codeCount,
+          handCount: telem.handCount,
+          mentalCount: telem.mentalCount,
+          lastPracticedAt: telem.lastPracticedAt ? telem.lastPracticedAt.toISOString() : null,
+          nextReviewDate: telem.nextReviewDate ? telem.nextReviewDate.toISOString() : null,
+          isDue: telem.isDue,
+          isOverdue: telem.isOverdue,
+          dueStatusText: telem.dueStatusText,
+          currentStage: telem.currentStage,
+          recommendedMode: telem.recommendedMode,
+        }
+      : {
+          totalPracticed: solveStatus?.isSolved ? 1 : 0,
+          codeCount: solveStatus?.isSolved ? 1 : 0,
+          handCount: 0,
+          mentalCount: 0,
+          lastPracticedAt: null,
+          nextReviewDate: null,
+          isDue: false,
+          isOverdue: false,
+          dueStatusText: 'Unscheduled',
+          currentStage: solveStatus?.isSolved ? 1 : 0,
+          recommendedMode: solveStatus?.isSolved ? 'HAND' : 'CODE',
+        };
+
+    return {
+      id: prob.id,
+      leetcodeId: prob.leetcodeId,
+      title: prob.title,
+      slug: prob.slug,
+      level: prob.level,
+      difficulty: prob.difficulty,
+      topic: prob.topic,
+      subtopic: prob.subtopic,
+      patternName: prob.pattern?.name,
+      estimatedTimeMin: prob.estimatedTimeMin,
+      optimalTimeComplexity: prob.optimalTimeComplexity,
+      optimalSpaceComplexity: prob.optimalSpaceComplexity,
+      isSolved: solveStatus?.isSolved ?? false,
+      optimalityScore: solveStatus?.highestOptimality ?? null,
+      telemetry: initialTelemetry,
+    };
+  });
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
@@ -300,7 +238,7 @@ export default async function DedicatedLevelPage({
       <div className="p-6 rounded-2xl bg-gradient-to-r from-card via-card/90 to-card border border-border shadow-md space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <Badge variant="default" className="font-mono text-xs">
                 LEVEL {levelNum}
               </Badge>
@@ -313,6 +251,11 @@ export default async function DedicatedLevelPage({
               >
                 {solvedInLevelCount} / {totalInLevel} Solved
               </Badge>
+              {!isAuthenticated && (
+                <Badge variant="outline" className="font-mono text-xs text-amber-500 border-amber-500/30 bg-amber-500/10">
+                  Guest Mode
+                </Badge>
+              )}
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight">
               {levelMeta.title}
@@ -437,91 +380,13 @@ export default async function DedicatedLevelPage({
         </div>
       </div>
 
-      {/* Problems Counter Bar */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground font-mono px-1">
-        <span>
-          Showing <strong className="text-foreground">{filteredProblems.length}</strong> of{' '}
-          <strong className="text-foreground">{totalInLevel}</strong> problems
-        </span>
-        <span>
-          Level {levelNum} of 23 Roadmap Progression
-        </span>
-      </div>
-
-      {/* Problems Grid */}
-      {filteredProblems.length === 0 ? (
-        <Card className="p-12 text-center space-y-3 bg-card/40">
-          <BookOpen className="w-10 h-10 text-muted-foreground mx-auto" />
-          <h3 className="text-base font-bold text-foreground">No questions match your filter</h3>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            Try adjusting your search query or reset the difficulty filters to see all Level {levelNum} problems.
-          </p>
-          <Link
-            href={`/levels/${levelNum}`}
-            className="inline-block px-4 py-2 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition shadow"
-          >
-            Reset Filters
-          </Link>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredProblems.map((prob) => {
-            const solveStatus = solvedMap.get(prob.id);
-            const telem = telemetryMap.get(prob.id);
-
-            const initialTelemetry: ProblemTelemetry = telem
-              ? {
-                  totalPracticed: telem.totalPracticed,
-                  codeCount: telem.codeCount,
-                  handCount: telem.handCount,
-                  mentalCount: telem.mentalCount,
-                  lastPracticedAt: telem.lastPracticedAt ? telem.lastPracticedAt.toISOString() : null,
-                  nextReviewDate: telem.nextReviewDate ? telem.nextReviewDate.toISOString() : null,
-                  isDue: telem.isDue,
-                  isOverdue: telem.isOverdue,
-                  dueStatusText: telem.dueStatusText,
-                  currentStage: telem.currentStage,
-                  recommendedMode: telem.recommendedMode,
-                }
-              : {
-                  totalPracticed: solveStatus?.isSolved ? 1 : 0,
-                  codeCount: solveStatus?.isSolved ? 1 : 0,
-                  handCount: 0,
-                  mentalCount: 0,
-                  lastPracticedAt: null,
-                  nextReviewDate: null,
-                  isDue: false,
-                  isOverdue: false,
-                  dueStatusText: 'Unscheduled',
-                  currentStage: solveStatus?.isSolved ? 1 : 0,
-                  recommendedMode: solveStatus?.isSolved ? 'HAND' : 'CODE',
-                };
-
-            return (
-              <ProblemCard
-                key={prob.id}
-                problem={{
-                  id: prob.id,
-                  leetcodeId: prob.leetcodeId,
-                  title: prob.title,
-                  slug: prob.slug,
-                  level: prob.level,
-                  difficulty: prob.difficulty,
-                  topic: prob.topic,
-                  subtopic: prob.subtopic,
-                  patternName: prob.pattern?.name,
-                  estimatedTimeMin: prob.estimatedTimeMin,
-                  optimalTimeComplexity: prob.optimalTimeComplexity,
-                  optimalSpaceComplexity: prob.optimalSpaceComplexity,
-                }}
-                isSolved={solveStatus?.isSolved ?? false}
-                optimalityScore={solveStatus?.highestOptimality ?? null}
-                initialTelemetry={initialTelemetry}
-              />
-            );
-          })}
-        </div>
-      )}
+      {/* Interactive Problems Grid with View Mode Switcher (Simplistic vs Detailed Telemetry) */}
+      <LevelProblemGrid
+        levelNum={levelNum}
+        problems={problemItems}
+        totalInLevel={totalInLevel}
+        defaultViewMode={(viewParam === 'detailed' ? 'detailed' : 'simplistic') as ViewMode}
+      />
     </div>
   );
 }

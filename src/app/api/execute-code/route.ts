@@ -2,9 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CodeExecutionService } from '@/services/execution/codeExecutionService';
 import { prisma } from '@/lib/prisma';
 import { SubmissionStatus } from '@prisma/client';
+import { getRequestAuth } from '@/lib/auth';
+import { PracticeService } from '@/services/practice/practiceService';
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await getRequestAuth(req);
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in to run code or submit solutions.' },
+        { status: 401, headers: { 'Cache-Control': 'private, no-store' } }
+      );
+    }
+    const user = auth.user;
+
     const {
       problemId,
       code,
@@ -85,29 +96,42 @@ export async function POST(req: NextRequest) {
     // Submission Persistence Policy:
     // Only accepted submissions create permanent user-visible submission records.
     // Failed submissions display diagnostics to the user without polluting permanent submission history.
-    if (isSubmission && problemId && result.status === 'ACCEPTED') {
-      const user = await prisma.user.findFirst();
-      if (user) {
-        await prisma.dsaSubmission.create({
-          data: {
-            userId: user.id,
-            problemId,
-            code,
-            language,
-            status: SubmissionStatus.ACCEPTED,
-            runtimeMs: result.runtimeMs,
-            memoryKb: result.memoryKb,
-            optimalityScore: result.optimalityScore ?? 0.0,
-            efficiencyFeedback: result.efficiencyFeedback ?? null,
-            testCasesPassed: result.testCasesPassed,
-            totalTestCases: result.totalTestCases,
-            hintCountUsed,
-            failedTestCase: null,
-            userConfidenceBefore,
-          },
+    if (isSubmission && problemId) {
+      if (result.status === 'ACCEPTED') {
+          await prisma.dsaSubmission.create({
+            data: {
+              userId: user.id,
+              problemId,
+              code,
+              language,
+              status: SubmissionStatus.ACCEPTED,
+              runtimeMs: result.runtimeMs,
+              memoryKb: result.memoryKb,
+              optimalityScore: result.optimalityScore ?? 0.0,
+              efficiencyFeedback: result.efficiencyFeedback ?? null,
+              testCasesPassed: result.testCasesPassed,
+              totalTestCases: result.totalTestCases,
+              hintCountUsed,
+              failedTestCase: null,
+              userConfidenceBefore,
+            },
+          });
+        }
+
+        // Always record attempt and upsert unique daily session
+        await PracticeService.recordAttempt({
+          userId: user.id,
+          problemId,
+          attemptType: 'IDE_SUBMISSION',
+          method: 'IDE',
+          status: result.status,
+          runtimeMs: result.runtimeMs,
+          durationSec: result.runtimeMs ? Math.round(result.runtimeMs / 1000) : 0,
+          optimalityScore: result.optimalityScore ?? undefined,
+          code,
+          userTimezone: user.timezone,
         });
       }
-    }
 
     return NextResponse.json(result);
   } catch (error: any) {

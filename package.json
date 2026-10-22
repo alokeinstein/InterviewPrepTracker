@@ -11,22 +11,26 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:seed": "node --loader ts-node/esm prisma/seed.ts",
-    "test": "npx tsx --test tests/interview-os.test.ts tests/e2e-execution.test.ts tests/arena-optimality-benchmark.test.ts tests/design-execution.test.ts tests/revision-engine.test.ts tests/revision-policy-15-rules.test.ts tests/persistence-and-analytics.test.ts tests/workspace-splitters-and-typography.test.ts"
+    "test": "npx tsx --test tests/guest-mode-and-google-auth.test.ts tests/practice-sessions-and-analytics.test.ts tests/auth-and-security.test.ts tests/interview-os.test.ts tests/e2e-execution.test.ts tests/arena-optimality-benchmark.test.ts tests/design-execution.test.ts tests/revision-engine.test.ts tests/revision-policy-15-rules.test.ts tests/persistence-and-analytics.test.ts tests/workspace-splitters-and-typography.test.ts tests/level-cards-and-view-mode.test.ts"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@prisma/client": "^5.22.0",
+    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
     "marked": "^18.1.1",
     "next": "^15.1.0",
+    "nodemailer": "^10.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.5.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.2",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.1",
     "autoprefixer": "^10.4.20",

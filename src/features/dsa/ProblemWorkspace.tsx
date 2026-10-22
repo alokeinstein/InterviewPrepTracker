@@ -12,6 +12,7 @@ import { ProblemNotesTab } from '@/components/dsa/ProblemNotesTab';
 import { ProblemSubmissionsTab } from '@/components/dsa/ProblemSubmissionsTab';
 import { ProblemCheckpointsModal } from '@/components/dsa/ProblemCheckpointsModal';
 import { ExecutionConsole } from '@/components/dsa/ExecutionConsole';
+import { AuthModal } from '@/components/auth/AuthModal';
 import { localStore, ProblemSolveStatus } from '@/lib/storage/indexedDb';
 import {
   Play,
@@ -82,9 +83,16 @@ interface ProblemWorkspaceProps {
     lastSolvedAt: string | null;
     durationSec: number | null;
   };
+  isAuthenticated?: boolean;
+  currentUser?: any;
 }
 
-export function ProblemWorkspace({ problem, serverSolveInfo }: ProblemWorkspaceProps) {
+export function ProblemWorkspace({
+  problem,
+  serverSolveInfo,
+  isAuthenticated = false,
+  currentUser = null,
+}: ProblemWorkspaceProps) {
   // Tabs for Left Panel: 'description' | 'notes' | 'submissions'
   const [leftTab, setLeftTab] = useState<'description' | 'notes' | 'submissions'>('description');
 
@@ -143,13 +151,21 @@ export function ProblemWorkspace({ problem, serverSolveInfo }: ProblemWorkspaceP
   const [expandedStages, setExpandedStages] = useState<number[]>([1]);
   const [showHintModal, setShowHintModal] = useState(false);
   const [showSolutionConfirmModal, setShowSolutionConfirmModal] = useState(false);
+  const [fetchedOptimalSolution, setFetchedOptimalSolution] = useState<string | null>(null);
 
   // Multi-Modal Practice Tracking
   const [isLoggingPractice, setIsLoggingPractice] = useState(false);
   const [practiceSuccessMsg, setPracticeSuccessMsg] = useState<string | null>(null);
 
+  // Auth Modal for Protected Guest Actions
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalReason, setAuthModalReason] = useState<string | null>(null);
+
   // Load Saved Split Dimensions & Solved Status from IndexedDB on mount
   useEffect(() => {
+    // Scope IndexedDB client to authenticated user or guest namespace
+    localStore.setCurrentUser(isAuthenticated && currentUser ? currentUser.id : null);
+
     localStore.getPreference<number>('workspace_split_ratio', 45).then((ratio) => {
       if (ratio >= 20 && ratio <= 80) setSplitRatio(ratio);
     });
@@ -163,7 +179,7 @@ export function ProblemWorkspace({ problem, serverSolveInfo }: ProblemWorkspaceP
         setSolveStatus(status);
       }
     });
-  }, [problem.id]);
+  }, [problem.id, isAuthenticated, currentUser]);
 
   // Load Code Draft for current language
   useEffect(() => {
@@ -330,6 +346,13 @@ export function ProblemWorkspace({ problem, serverSolveInfo }: ProblemWorkspaceP
 
   // Execute Code (Run Tests vs Submit)
   const handleExecute = async (isSubmission: boolean = false) => {
+    // Guest protection check: Guests cannot execute code remotely or submit to server
+    if (!isAuthenticated) {
+      setAuthModalReason('Sign in to run test cases, submit solutions, and track your practice progress.');
+      setShowAuthModal(true);
+      return;
+    }
+
     if (isSubmission) {
       setIsSubmitting(true);
     } else {
@@ -349,6 +372,12 @@ export function ProblemWorkspace({ problem, serverSolveInfo }: ProblemWorkspaceP
           hintCountUsed: unlockedStages.length,
         }),
       });
+
+      if (res.status === 401) {
+        setAuthModalReason('Your session has expired. Please sign in to run code.');
+        setShowAuthModal(true);
+        return;
+      }
 
       const data = await res.json();
       setExecutionResult(data);
@@ -409,6 +438,11 @@ export function ProblemWorkspace({ problem, serverSolveInfo }: ProblemWorkspaceP
 
   // Multi-Modal Practice Logger (By Hand / In Mind)
   const handleLogManualPractice = async (mode: 'HAND' | 'MENTAL') => {
+    if (!isAuthenticated) {
+      setAuthModalReason('Sign in to log practice attempts and build your spaced repetition schedule.');
+      setShowAuthModal(true);
+      return;
+    }
     setIsLoggingPractice(true);
     const durationSec = mode === 'HAND' ? 180 : 90;
     try {
@@ -446,12 +480,27 @@ export function ProblemWorkspace({ problem, serverSolveInfo }: ProblemWorkspaceP
     }
   };
 
+  // Local Guest Completion Handler
+  const handleMarkCompletedLocally = async () => {
+    const solveDuration = timerDurationRef.current > 0 ? timerDurationRef.current : 60;
+    const updatedStatus = await localStore.recordSolve(problem.id, solveDuration, {
+      problemTitle: problem.title,
+      difficulty: problem.difficulty,
+      level: problem.level,
+      method: 'IDE',
+    });
+    setSolveStatus(updatedStatus);
+    setPracticeSuccessMsg('Marked as completed locally. (Guest progress is saved on this browser only and not synced to cloud streaks)');
+  };
+
   // Progressive Hints Definition
   const progressiveHints = useMemo(() => {
     const rawHints = problem.hints || [];
     const fnName = problem.functionName || 'solve';
     const optTime = problem.optimalTimeComplexity || 'O(N)';
     const optSpace = problem.optimalSpaceComplexity || 'O(1)';
+    const solutionCode = (isAuthenticated ? (problem.optimalSolution || fetchedOptimalSolution) : null) ||
+      `// Protected reference solution.\n// Please sign in with your developer account to reveal the verified reference implementation.`;
 
     return {
       stage1: rawHints[0] || `Focus on structural invariants for "${problem.title}". Identify whether the state transition is monotonic, frequency-based, or greedy.`,
@@ -460,13 +509,18 @@ export function ProblemWorkspace({ problem, serverSolveInfo }: ProblemWorkspaceP
       stage4: `Edge Cases: Verify empty inputs, single element, negative values, boundary constraints. Space target: ${optSpace}.`,
       stage5: {
         walkthrough: `Maintain optimal ${optTime} time complexity and ${optSpace} auxiliary space. Avoid duplicate iterations.`,
-        referenceCode: problem.optimalSolution || `// Optimal ${optTime} Solution\nfunction ${fnName}(...args) {\n  // Implementation\n}`,
+        referenceCode: solutionCode,
       },
     };
-  }, [problem]);
+  }, [problem, isAuthenticated, fetchedOptimalSolution]);
 
   const unlockNextHint = (stage: number) => {
     if (stage === 5) {
+      if (!isAuthenticated) {
+        setAuthModalReason('Sign in to reveal reference solutions and view the full verified code.');
+        setShowAuthModal(true);
+        return;
+      }
       setShowSolutionConfirmModal(true);
       return;
     }
@@ -474,7 +528,20 @@ export function ProblemWorkspace({ problem, serverSolveInfo }: ProblemWorkspaceP
     setExpandedStages((prev) => Array.from(new Set([...prev, stage])));
   };
 
-  const confirmRevealFullSolution = () => {
+  const confirmRevealFullSolution = async () => {
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      return;
+    }
+    if (!problem.optimalSolution && !fetchedOptimalSolution) {
+      try {
+        const res = await fetch(`/api/dsa/${problem.slug}/solution`);
+        if (res.ok) {
+          const data = await res.json();
+          setFetchedOptimalSolution(data.optimalSolution);
+        }
+      } catch {}
+    }
     setUnlockedStages((prev) => Array.from(new Set([...prev, 5])));
     setExpandedStages((prev) => Array.from(new Set([...prev, 5])));
     setShowSolutionConfirmModal(false);
@@ -511,11 +578,28 @@ export function ProblemWorkspace({ problem, serverSolveInfo }: ProblemWorkspaceP
 
         {/* Right Header: Solved Status Badge & Active Stopwatch Timer */}
         <div className="flex items-center gap-3 flex-wrap">
+          {!isAuthenticated && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono">
+              <span className="font-semibold">Guest Mode</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthModalReason('Sign in to record your practice history and sync streaks.');
+                  setShowAuthModal(true);
+                }}
+                className="underline ml-1 font-bold text-amber-300 hover:text-amber-200"
+              >
+                Sign In
+              </button>
+            </div>
+          )}
+
           <ProblemSolvedBadge
             status={solveStatus}
             serverSolved={serverSolveInfo?.isSolved}
             serverLastSolvedAt={serverSolveInfo?.lastSolvedAt}
             serverSolveDurationSec={serverSolveInfo?.durationSec}
+            isGuest={!isAuthenticated}
           />
 
           <ProblemTimer
@@ -645,6 +729,11 @@ export function ProblemWorkspace({ problem, serverSolveInfo }: ProblemWorkspaceP
                   setCode(restoredCode);
                   localStore.saveDraft(problem.id, language, restoredCode);
                 }}
+                isGuest={!isAuthenticated}
+                onPromptAuth={() => {
+                  setAuthModalReason('Sign in to view your submissions.');
+                  setShowAuthModal(true);
+                }}
               />
             )}
           </div>
@@ -737,13 +826,30 @@ export function ProblemWorkspace({ problem, serverSolveInfo }: ProblemWorkspaceP
 
             {/* Run Tests & Submit Action Buttons */}
             <div className="flex items-center gap-2">
+              {!isAuthenticated && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
+                  onClick={handleMarkCompletedLocally}
+                  title="Mark as completed locally on this browser (does not affect cloud streaks)"
+                >
+                  <Bookmark className="h-3 w-3 mr-1" />
+                  Save Locally
+                </Button>
+              )}
+
               <Button
                 variant="outline"
                 size="sm"
                 className="h-7 text-xs"
                 disabled={isRunning || isSubmitting}
                 onClick={() => handleExecute(false)}
-                title="Run approximately 3-4 visible quick tests (Ctrl+Enter)"
+                title={
+                  isAuthenticated
+                    ? 'Run approximately 3-4 visible quick tests (Ctrl+Enter)'
+                    : 'Sign in to run test cases'
+                }
               >
                 <Play className="h-3 w-3 mr-1 fill-current" />
                 {isRunning ? 'Running...' : 'Run Tests'}
@@ -755,7 +861,11 @@ export function ProblemWorkspace({ problem, serverSolveInfo }: ProblemWorkspaceP
                 className="h-7 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-sm"
                 disabled={isRunning || isSubmitting}
                 onClick={() => handleExecute(true)}
-                title="Run complete test suite including hidden tests (Ctrl+Shift+Enter)"
+                title={
+                  isAuthenticated
+                    ? 'Run complete test suite including hidden tests (Ctrl+Shift+Enter)'
+                    : 'Sign in to submit solutions'
+                }
               >
                 <Send className="h-3 w-3 mr-1" />
                 {isSubmitting ? 'Submitting...' : 'Submit'}
@@ -972,6 +1082,16 @@ export function ProblemWorkspace({ problem, serverSolveInfo }: ProblemWorkspaceP
           </div>
         </div>
       </Modal>
+
+      {/* Auth Modal for Protected Actions */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => {
+          setShowAuthModal(false);
+          setAuthModalReason(null);
+        }}
+        onAuthSuccess={() => window.location.reload()}
+      />
     </div>
   );
 }

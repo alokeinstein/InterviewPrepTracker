@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { ItemType, PracticeMode, Difficulty } from '@prisma/client';
 import { RevisionEngine, RecallRating } from './revisionEngine';
+import { PracticeService } from '../practice/practiceService';
 
 export interface SM2Result {
   repetitionNumber: number;
@@ -251,6 +252,18 @@ export class SpacedRepetitionService {
         recalledInvariants: !struggled,
         durationSec,
       },
+    });
+
+    // 4. Record canonical PracticeAttempt and unique PracticeSession
+    await PracticeService.recordAttempt({
+      userId,
+      problemId: problem.id,
+      attemptType: `REVISION_${mode}`,
+      method: mode === 'CODE' ? 'IDE' : mode === 'HAND' ? 'HAND' : 'MENTAL',
+      status: struggled ? 'FAILED' : 'ACCEPTED',
+      durationSec,
+      notes: notes || undefined,
+      optimalityScore,
     });
 
     return {

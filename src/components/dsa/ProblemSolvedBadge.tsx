@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/Badge';
-import { CheckCircle2, Circle, Clock, Calendar, Trophy } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Calendar, Trophy, Bookmark } from 'lucide-react';
 import { ProblemSolveStatus } from '@/lib/storage/indexedDb';
 
 interface ProblemSolvedBadgeProps {
@@ -10,6 +10,7 @@ interface ProblemSolvedBadgeProps {
   serverSolved?: boolean;
   serverLastSolvedAt?: Date | string | null;
   serverSolveDurationSec?: number | null;
+  isGuest?: boolean;
 }
 
 export function ProblemSolvedBadge({
@@ -17,16 +18,8 @@ export function ProblemSolvedBadge({
   serverSolved = false,
   serverLastSolvedAt = null,
   serverSolveDurationSec = null,
+  isGuest = false,
 }: ProblemSolvedBadgeProps) {
-  const isSolved = status?.isSolved || serverSolved;
-  const lastSolvedAt = status?.lastSolvedAt
-    ? new Date(status.lastSolvedAt)
-    : serverLastSolvedAt
-    ? new Date(serverLastSolvedAt)
-    : null;
-  const durationSec = status?.lastDurationSec || serverSolveDurationSec;
-  const bestDurationSec = status?.bestDurationSec;
-
   const formatDuration = (totalSec?: number | null) => {
     if (!totalSec || totalSec <= 0) return null;
     const hrs = Math.floor(totalSec / 3600);
@@ -50,6 +43,45 @@ export function ProblemSolvedBadge({
     if (diffDays < 30) return `${diffDays}d ago`;
     return date.toLocaleDateString();
   };
+
+  // If Guest Mode: Strictly never display another user's authenticated solve status
+  if (isGuest) {
+    if (status?.isSolved) {
+      return (
+        <div className="flex items-center gap-2">
+          <Badge
+            variant="outline"
+            className="gap-1.5 px-2.5 py-1 text-xs font-semibold bg-amber-500/10 text-amber-500 border-amber-500/30"
+          >
+            <Bookmark className="h-3.5 w-3.5 text-amber-500" />
+            <span>Guest Progress (Saved Locally)</span>
+          </Badge>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-2">
+        <Badge
+          variant="outline"
+          className="gap-1.5 px-2.5 py-1 text-xs text-muted-foreground border-border/80"
+        >
+          <Circle className="h-3 w-3 text-muted-foreground/60" />
+          <span>Guest Mode</span>
+        </Badge>
+      </div>
+    );
+  }
+
+  // Authenticated User solve check
+  const isSolved = status?.isSolved || serverSolved;
+  const lastSolvedAt = status?.lastSolvedAt
+    ? new Date(status.lastSolvedAt)
+    : serverLastSolvedAt
+    ? new Date(serverLastSolvedAt)
+    : null;
+  const durationSec = status?.lastDurationSec || serverSolveDurationSec;
+  const bestDurationSec = status?.bestDurationSec;
 
   if (isSolved) {
     return (

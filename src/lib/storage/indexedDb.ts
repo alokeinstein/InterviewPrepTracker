@@ -2,20 +2,25 @@
  * IndexedDB Local-First Persistence for DSA Arena
  * Stores drafts, notes, named checkpoints, accepted snapshots, solve durations,
  * and user preferences with seamless fallback to localStorage.
+ *
+ * Implements strict namespace partitioning between Guests ('guest')
+ * and Authenticated Users ('u_${userId}').
  */
 
 export interface CodeDraft {
-  key: string; // `${problemId}_${language}`
+  key: string; // `${namespace}:${problemId}_${language}`
   problemId: string;
   language: string;
   code: string;
   updatedAt: number;
+  userScope?: string;
 }
 
 export interface QuestionNote {
-  problemId: string;
+  problemId: string; // Scoped problemId or key
   content: string;
   updatedAt: number;
+  userScope?: string;
 }
 
 export interface DraftCheckpoint {
@@ -26,6 +31,7 @@ export interface DraftCheckpoint {
   code: string;
   description?: string;
   createdAt: number;
+  userScope?: string;
 }
 
 export interface AcceptedSnapshot {
@@ -38,16 +44,18 @@ export interface AcceptedSnapshot {
   optimalityScore: number;
   solveDurationSec: number;
   solvedAt: number;
+  userScope?: string;
 }
 
 export interface ProblemSolveStatus {
-  problemId: string;
+  problemId: string; // Scoped problemId or key
   isSolved: boolean;
   firstSolvedAt?: number;
   lastSolvedAt?: number;
   bestDurationSec?: number;
   lastDurationSec?: number;
   solveCount: number;
+  userScope?: string;
 }
 
 export interface ActivityEvent {
@@ -61,6 +69,7 @@ export interface ActivityEvent {
   rating?: string;
   durationSec: number;
   timestamp: number;
+  userScope?: string;
 }
 
 const DB_NAME = 'dsa_arena_db';
@@ -70,6 +79,8 @@ class IndexedDbClient {
   private db: IDBDatabase | null = null;
   private initPromise: Promise<IDBDatabase | null> | null = null;
   private lastMonotonicTime = 0;
+  private currentUserId: string | null = null;
+
   private memStore = {
     drafts: new Map<string, CodeDraft>(),
     notes: new Map<string, QuestionNote>(),
@@ -79,6 +90,30 @@ class IndexedDbClient {
     preferences: new Map<string, any>(),
     activityEvents: new Map<string, ActivityEvent>(),
   };
+
+  /**
+   * Sets the active user context for storage operations.
+   * When null, user namespace becomes 'guest'.
+   */
+  setCurrentUser(userId: string | null): void {
+    this.currentUserId = userId;
+  }
+
+  getCurrentUser(): string | null {
+    return this.currentUserId;
+  }
+
+  getUserNamespace(): string {
+    return this.currentUserId ? `u_${this.currentUserId}` : 'guest';
+  }
+
+  isGuest(): boolean {
+    return !this.currentUserId;
+  }
+
+  private getScopedKey(baseKey: string): string {
+    return `${this.getUserNamespace()}:${baseKey}`;
+  }
 
   private getMonotonicNow(): number {
     let now = Date.now();
@@ -147,8 +182,15 @@ class IndexedDbClient {
 
   // --- Drafts ---
   async saveDraft(problemId: string, language: string, code: string): Promise<void> {
-    const key = `${problemId}_${language}`;
-    const draft: CodeDraft = { key, problemId, language, code, updatedAt: Date.now() };
+    const key = this.getScopedKey(`${problemId}_${language}`);
+    const draft: CodeDraft = {
+      key,
+      problemId,
+      language,
+      code,
+      updatedAt: Date.now(),
+      userScope: this.getUserNamespace(),
+    };
 
     const db = await this.getDb();
     if (db) {
@@ -172,7 +214,7 @@ class IndexedDbClient {
   }
 
   async loadDraft(problemId: string, language: string): Promise<string | null> {
-    const key = `${problemId}_${language}`;
+    const key = this.getScopedKey(`${problemId}_${language}`);
     const db = await this.getDb();
     if (db) {
       return new Promise((resolve) => {
@@ -199,7 +241,13 @@ class IndexedDbClient {
 
   // --- Notes ---
   async saveNote(problemId: string, content: string): Promise<void> {
-    const note: QuestionNote = { problemId, content, updatedAt: Date.now() };
+    const scopedId = this.getScopedKey(problemId);
+    const note: QuestionNote = {
+      problemId: scopedId,
+      content,
+      updatedAt: Date.now(),
+      userScope: this.getUserNamespace(),
+    };
     const db = await this.getDb();
     if (db) {
       return new Promise((resolve) => {
@@ -214,20 +262,21 @@ class IndexedDbClient {
       });
     } else if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        localStorage.setItem(`dsa_note_${problemId}`, JSON.stringify(note));
+        localStorage.setItem(`dsa_note_${scopedId}`, JSON.stringify(note));
       } catch {}
     } else {
-      this.memStore.notes.set(problemId, note);
+      this.memStore.notes.set(scopedId, note);
     }
   }
 
   async loadNote(problemId: string): Promise<string | null> {
+    const scopedId = this.getScopedKey(problemId);
     const db = await this.getDb();
     if (db) {
       return new Promise((resolve) => {
         try {
           const tx = db.transaction('notes', 'readonly');
-          const req = tx.objectStore('notes').get(problemId);
+          const req = tx.objectStore('notes').get(scopedId);
           req.onsuccess = () => resolve(req.result?.content ?? null);
           req.onerror = () => resolve(null);
         } catch {
@@ -236,13 +285,13 @@ class IndexedDbClient {
       });
     } else if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        const item = localStorage.getItem(`dsa_note_${problemId}`);
+        const item = localStorage.getItem(`dsa_note_${scopedId}`);
         return item ? JSON.parse(item).content : null;
       } catch {
         return null;
       }
     } else {
-      return this.memStore.notes.get(problemId)?.content ?? null;
+      return this.memStore.notes.get(scopedId)?.content ?? null;
     }
   }
 
@@ -263,6 +312,7 @@ class IndexedDbClient {
       code,
       description,
       createdAt: now,
+      userScope: this.getUserNamespace(),
     };
 
     const db = await this.getDb();
@@ -279,9 +329,10 @@ class IndexedDbClient {
       });
     } else if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        const existing = JSON.parse(localStorage.getItem(`dsa_cp_${problemId}`) || '[]');
+        const key = `dsa_cp_${this.getScopedKey(problemId)}`;
+        const existing = JSON.parse(localStorage.getItem(key) || '[]');
         existing.push(cp);
-        localStorage.setItem(`dsa_cp_${problemId}`, JSON.stringify(existing));
+        localStorage.setItem(key, JSON.stringify(existing));
       } catch {}
     } else {
       this.memStore.checkpoints.set(cp.id, cp);
@@ -290,6 +341,7 @@ class IndexedDbClient {
   }
 
   async listCheckpoints(problemId: string): Promise<DraftCheckpoint[]> {
+    const currentScope = this.getUserNamespace();
     const db = await this.getDb();
     if (db) {
       return new Promise((resolve) => {
@@ -297,7 +349,12 @@ class IndexedDbClient {
           const tx = db.transaction('checkpoints', 'readonly');
           const idx = tx.objectStore('checkpoints').index('problemId');
           const req = idx.getAll(problemId);
-          req.onsuccess = () => resolve((req.result || []).sort((a: DraftCheckpoint, b: DraftCheckpoint) => b.createdAt - a.createdAt));
+          req.onsuccess = () => {
+            const list = (req.result || [])
+              .filter((c: DraftCheckpoint) => (c.userScope || 'guest') === currentScope)
+              .sort((a: DraftCheckpoint, b: DraftCheckpoint) => b.createdAt - a.createdAt);
+            resolve(list);
+          };
           req.onerror = () => resolve([]);
         } catch {
           resolve([]);
@@ -305,14 +362,15 @@ class IndexedDbClient {
       });
     } else if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        const items: DraftCheckpoint[] = JSON.parse(localStorage.getItem(`dsa_cp_${problemId}`) || '[]');
+        const key = `dsa_cp_${this.getScopedKey(problemId)}`;
+        const items: DraftCheckpoint[] = JSON.parse(localStorage.getItem(key) || '[]');
         return items.sort((a, b) => b.createdAt - a.createdAt);
       } catch {
         return [];
       }
     } else {
       return Array.from(this.memStore.checkpoints.values())
-        .filter((c) => c.problemId === problemId)
+        .filter((c) => c.problemId === problemId && (c.userScope || 'guest') === currentScope)
         .sort((a, b) => b.createdAt - a.createdAt);
     }
   }
@@ -355,6 +413,7 @@ class IndexedDbClient {
       ...snapshot,
       id: `snap_${now}_${Math.random().toString(36).slice(2, 6)}`,
       solvedAt: now,
+      userScope: this.getUserNamespace(),
     };
 
     const db = await this.getDb();
@@ -371,9 +430,10 @@ class IndexedDbClient {
       });
     } else if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        const existing = JSON.parse(localStorage.getItem(`dsa_snap_${snapshot.problemId}`) || '[]');
+        const key = `dsa_snap_${this.getScopedKey(snapshot.problemId)}`;
+        const existing = JSON.parse(localStorage.getItem(key) || '[]');
         existing.push(fullSnapshot);
-        localStorage.setItem(`dsa_snap_${snapshot.problemId}`, JSON.stringify(existing));
+        localStorage.setItem(key, JSON.stringify(existing));
       } catch {}
     } else {
       this.memStore.acceptedSnapshots.set(fullSnapshot.id, fullSnapshot);
@@ -383,6 +443,7 @@ class IndexedDbClient {
   }
 
   async listAcceptedSnapshots(problemId: string): Promise<AcceptedSnapshot[]> {
+    const currentScope = this.getUserNamespace();
     const db = await this.getDb();
     if (db) {
       return new Promise((resolve) => {
@@ -390,7 +451,12 @@ class IndexedDbClient {
           const tx = db.transaction('acceptedSnapshots', 'readonly');
           const idx = tx.objectStore('acceptedSnapshots').index('problemId');
           const req = idx.getAll(problemId);
-          req.onsuccess = () => resolve((req.result || []).sort((a: AcceptedSnapshot, b: AcceptedSnapshot) => b.solvedAt - a.solvedAt));
+          req.onsuccess = () => {
+            const list = (req.result || [])
+              .filter((s: AcceptedSnapshot) => (s.userScope || 'guest') === currentScope)
+              .sort((a: AcceptedSnapshot, b: AcceptedSnapshot) => b.solvedAt - a.solvedAt);
+            resolve(list);
+          };
           req.onerror = () => resolve([]);
         } catch {
           resolve([]);
@@ -398,14 +464,15 @@ class IndexedDbClient {
       });
     } else if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        const items: AcceptedSnapshot[] = JSON.parse(localStorage.getItem(`dsa_snap_${problemId}`) || '[]');
+        const key = `dsa_snap_${this.getScopedKey(problemId)}`;
+        const items: AcceptedSnapshot[] = JSON.parse(localStorage.getItem(key) || '[]');
         return items.sort((a, b) => b.solvedAt - a.solvedAt);
       } catch {
         return [];
       }
     } else {
       return Array.from(this.memStore.acceptedSnapshots.values())
-        .filter((s) => s.problemId === problemId)
+        .filter((s) => s.problemId === problemId && (s.userScope || 'guest') === currentScope)
         .sort((a, b) => b.solvedAt - a.solvedAt);
     }
   }
@@ -422,10 +489,11 @@ class IndexedDbClient {
     }
   ): Promise<ProblemSolveStatus> {
     const now = Date.now();
+    const scopedId = this.getScopedKey(problemId);
     const current = await this.getSolveStatus(problemId);
 
     const updated: ProblemSolveStatus = {
-      problemId,
+      problemId: scopedId,
       isSolved: true,
       firstSolvedAt: current?.firstSolvedAt ?? now,
       lastSolvedAt: now,
@@ -434,6 +502,7 @@ class IndexedDbClient {
         : durationSec,
       lastDurationSec: durationSec,
       solveCount: (current?.solveCount ?? 0) + 1,
+      userScope: this.getUserNamespace(),
     };
 
     const db = await this.getDb();
@@ -450,10 +519,10 @@ class IndexedDbClient {
       });
     } else if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        localStorage.setItem(`dsa_status_${problemId}`, JSON.stringify(updated));
+        localStorage.setItem(`dsa_status_${scopedId}`, JSON.stringify(updated));
       } catch {}
     } else {
-      this.memStore.solveStatus.set(problemId, updated);
+      this.memStore.solveStatus.set(scopedId, updated);
     }
 
     // Also record activity event
@@ -474,12 +543,13 @@ class IndexedDbClient {
   }
 
   async getSolveStatus(problemId: string): Promise<ProblemSolveStatus | null> {
+    const scopedId = this.getScopedKey(problemId);
     const db = await this.getDb();
     if (db) {
       return new Promise((resolve) => {
         try {
           const tx = db.transaction('solveStatus', 'readonly');
-          const req = tx.objectStore('solveStatus').get(problemId);
+          const req = tx.objectStore('solveStatus').get(scopedId);
           req.onsuccess = () => resolve(req.result ?? null);
           req.onerror = () => resolve(null);
         } catch {
@@ -488,17 +558,18 @@ class IndexedDbClient {
       });
     } else if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        const item = localStorage.getItem(`dsa_status_${problemId}`);
+        const item = localStorage.getItem(`dsa_status_${scopedId}`);
         return item ? JSON.parse(item) : null;
       } catch {
         return null;
       }
     } else {
-      return this.memStore.solveStatus.get(problemId) ?? null;
+      return this.memStore.solveStatus.get(scopedId) ?? null;
     }
   }
 
   async getAllSolveStatuses(): Promise<Record<string, ProblemSolveStatus>> {
+    const prefix = `${this.getUserNamespace()}:`;
     const db = await this.getDb();
     if (db) {
       return new Promise((resolve) => {
@@ -508,7 +579,10 @@ class IndexedDbClient {
           req.onsuccess = () => {
             const map: Record<string, ProblemSolveStatus> = {};
             (req.result || []).forEach((item: ProblemSolveStatus) => {
-              map[item.problemId] = item;
+              if (item.problemId.startsWith(prefix)) {
+                const rawId = item.problemId.substring(prefix.length);
+                map[rawId] = item;
+              }
             });
             resolve(map);
           };
@@ -522,9 +596,10 @@ class IndexedDbClient {
         const map: Record<string, ProblemSolveStatus> = {};
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
-          if (key && key.startsWith('dsa_status_')) {
+          if (key && key.startsWith(`dsa_status_${prefix}`)) {
+            const rawId = key.substring(`dsa_status_${prefix}`.length);
             const item = JSON.parse(localStorage.getItem(key) || '{}');
-            if (item.problemId) map[item.problemId] = item;
+            if (item.problemId) map[rawId] = item;
           }
         }
         return map;
@@ -534,7 +609,10 @@ class IndexedDbClient {
     } else {
       const map: Record<string, ProblemSolveStatus> = {};
       this.memStore.solveStatus.forEach((val, key) => {
-        map[key] = val;
+        if (key.startsWith(prefix)) {
+          const rawId = key.substring(prefix.length);
+          map[rawId] = val;
+        }
       });
       return map;
     }
@@ -545,6 +623,7 @@ class IndexedDbClient {
     const fullEvent: ActivityEvent = {
       ...event,
       id: `act_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      userScope: this.getUserNamespace(),
     };
 
     const db = await this.getDb();
@@ -561,9 +640,10 @@ class IndexedDbClient {
       });
     } else if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        const existing = JSON.parse(localStorage.getItem('dsa_activities') || '[]');
+        const key = `dsa_activities_${this.getUserNamespace()}`;
+        const existing = JSON.parse(localStorage.getItem(key) || '[]');
         existing.unshift(fullEvent);
-        localStorage.setItem('dsa_activities', JSON.stringify(existing.slice(0, 1000)));
+        localStorage.setItem(key, JSON.stringify(existing.slice(0, 1000)));
       } catch {}
     } else {
       this.memStore.activityEvents.set(fullEvent.id, fullEvent);
@@ -573,6 +653,7 @@ class IndexedDbClient {
   }
 
   async listActivities(limit = 100): Promise<ActivityEvent[]> {
+    const currentScope = this.getUserNamespace();
     const db = await this.getDb();
     if (db) {
       return new Promise((resolve) => {
@@ -580,9 +661,9 @@ class IndexedDbClient {
           const tx = db.transaction('activityEvents', 'readonly');
           const req = tx.objectStore('activityEvents').getAll();
           req.onsuccess = () => {
-            const items = (req.result || []).sort(
-              (a: ActivityEvent, b: ActivityEvent) => b.timestamp - a.timestamp
-            );
+            const items = (req.result || [])
+              .filter((a: ActivityEvent) => (a.userScope || 'guest') === currentScope)
+              .sort((a: ActivityEvent, b: ActivityEvent) => b.timestamp - a.timestamp);
             resolve(items.slice(0, limit));
           };
           req.onerror = () => resolve([]);
@@ -592,101 +673,28 @@ class IndexedDbClient {
       });
     } else if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        return JSON.parse(localStorage.getItem('dsa_activities') || '[]').slice(0, limit);
+        const key = `dsa_activities_${this.getUserNamespace()}`;
+        return JSON.parse(localStorage.getItem(key) || '[]').slice(0, limit);
       } catch {
         return [];
       }
     } else {
       return Array.from(this.memStore.activityEvents.values())
+        .filter((a) => (a.userScope || 'guest') === currentScope)
         .sort((a, b) => b.timestamp - a.timestamp)
         .slice(0, limit);
     }
   }
 
-  async getActivityStats(): Promise<{
-    currentStreak: number;
-    maxStreak: number;
-    totalSolved: number;
-    totalPracticed: number;
-    monthlyStats: Record<string, number>;
-  }> {
-    const activities = await this.listActivities(2000);
-    const dayMap = new Set<string>();
-    const monthlyStats: Record<string, number> = {};
-    let totalSolved = 0;
-    let totalPracticed = 0;
-
-    activities.forEach((act) => {
-      const d = new Date(act.timestamp);
-      const dayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
-        d.getDate()
-      ).padStart(2, '0')}`;
-      dayMap.add(dayKey);
-
-      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      monthlyStats[monthKey] = (monthlyStats[monthKey] || 0) + 1;
-
-      if (act.eventType === 'SOLVED') totalSolved++;
-      if (act.eventType === 'PRACTICED' || act.eventType === 'REVISED') totalPracticed++;
-    });
-
-    const sortedDays = Array.from(dayMap).sort();
-    let currentStreak = 0;
-    let maxStreak = 0;
-    let tempStreak = 0;
-    let lastDate: Date | null = null;
-
-    for (const dayStr of sortedDays) {
-      const curr = new Date(dayStr);
-      if (lastDate) {
-        const diffDays = Math.round((curr.getTime() - lastDate.getTime()) / (1000 * 3600 * 24));
-        if (diffDays === 1) {
-          tempStreak++;
-        } else if (diffDays > 1) {
-          tempStreak = 1;
-        }
-      } else {
-        tempStreak = 1;
-      }
-      if (tempStreak > maxStreak) maxStreak = tempStreak;
-      lastDate = curr;
-    }
-
-    if (sortedDays.length > 0) {
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(
-        today.getDate()
-      ).padStart(2, '0')}`;
-      const yesterday = new Date(Date.now() - 86400000);
-      const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(
-        yesterday.getDate()
-      ).padStart(2, '0')}`;
-
-      const lastActive = sortedDays[sortedDays.length - 1];
-      if (lastActive === todayStr || lastActive === yesterdayStr) {
-        currentStreak = tempStreak;
-      } else {
-        currentStreak = 0;
-      }
-    }
-
-    return {
-      currentStreak,
-      maxStreak,
-      totalSolved,
-      totalPracticed,
-      monthlyStats,
-    };
-  }
-
   // --- UI Preferences ---
   async getPreference<T>(key: string, defaultValue: T): Promise<T> {
+    const scopedKey = this.getScopedKey(key);
     const db = await this.getDb();
     if (db) {
       return new Promise((resolve) => {
         try {
           const tx = db.transaction('preferences', 'readonly');
-          const req = tx.objectStore('preferences').get(key);
+          const req = tx.objectStore('preferences').get(scopedKey);
           req.onsuccess = () => resolve(req.result ? req.result.value : defaultValue);
           req.onerror = () => resolve(defaultValue);
         } catch {
@@ -695,23 +703,26 @@ class IndexedDbClient {
       });
     } else if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        const item = localStorage.getItem(`dsa_pref_${key}`);
+        const item = localStorage.getItem(`dsa_pref_${scopedKey}`);
         return item ? JSON.parse(item) : defaultValue;
       } catch {
         return defaultValue;
       }
     } else {
-      return this.memStore.preferences.has(key) ? this.memStore.preferences.get(key) : defaultValue;
+      return this.memStore.preferences.has(scopedKey)
+        ? this.memStore.preferences.get(scopedKey)
+        : defaultValue;
     }
   }
 
   async setPreference<T>(key: string, value: T): Promise<void> {
+    const scopedKey = this.getScopedKey(key);
     const db = await this.getDb();
     if (db) {
       return new Promise((resolve) => {
         try {
           const tx = db.transaction('preferences', 'readwrite');
-          tx.objectStore('preferences').put({ key, value });
+          tx.objectStore('preferences').put({ key: scopedKey, value });
           tx.oncomplete = () => resolve();
           tx.onerror = () => resolve();
         } catch {
@@ -720,11 +731,152 @@ class IndexedDbClient {
       });
     } else if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        localStorage.setItem(`dsa_pref_${key}`, JSON.stringify(value));
+        localStorage.setItem(`dsa_pref_${scopedKey}`, JSON.stringify(value));
       } catch {}
     } else {
-      this.memStore.preferences.set(key, value);
+      this.memStore.preferences.set(scopedKey, value);
     }
+  }
+
+  /**
+   * Clears ALL authenticated user data from IndexedDB, localStorage, and memory upon logout,
+   * while STRICTLY PRESERVING legitimate guest progress ('guest:*').
+   */
+  async clearAuthenticatedData(): Promise<void> {
+    // 1. Clear in-memory authenticated entries
+    for (const storeName of Object.keys(this.memStore) as (keyof typeof this.memStore)[]) {
+      const map = this.memStore[storeName];
+      for (const key of Array.from(map.keys())) {
+        if (typeof key === 'string' && key.startsWith('u_')) {
+          map.delete(key);
+        }
+      }
+    }
+
+    // 2. Clear IndexedDB authenticated entries
+    const db = await this.getDb();
+    if (db) {
+      const stores = [
+        'drafts',
+        'notes',
+        'checkpoints',
+        'acceptedSnapshots',
+        'solveStatus',
+        'preferences',
+        'activityEvents',
+      ];
+      for (const store of stores) {
+        await new Promise<void>((resolve) => {
+          try {
+            const tx = db.transaction(store, 'readwrite');
+            const os = tx.objectStore(store);
+            const req = os.openCursor();
+            req.onsuccess = (e) => {
+              const cursor = (e.target as IDBRequest<IDBCursorWithValue>).result;
+              if (cursor) {
+                const val = cursor.value;
+                const key = String(cursor.key);
+                const userScope = val?.userScope || '';
+                if (key.startsWith('u_') || userScope.startsWith('u_')) {
+                  cursor.delete();
+                }
+                cursor.continue();
+              } else {
+                resolve();
+              }
+            };
+            req.onerror = () => resolve();
+          } catch {
+            resolve();
+          }
+        });
+      }
+    }
+
+    // 3. Clear localStorage authenticated entries
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.includes('_u_')) {
+            keysToRemove.push(k);
+          }
+        }
+        for (const k of keysToRemove) {
+          localStorage.removeItem(k);
+        }
+      } catch {}
+    }
+
+    // Reset current user to guest
+    this.currentUserId = null;
+  }
+
+  /**
+   * Retrieves all locally saved guest progress for authorized import upon authentication.
+   */
+  async getGuestProgress(): Promise<
+    Array<{ problemId: string; isSolved: boolean; durationSec?: number }>
+  > {
+    const list: Array<{ problemId: string; isSolved: boolean; durationSec?: number }> = [];
+    const prefix = 'guest:';
+
+    const db = await this.getDb();
+    if (db) {
+      await new Promise<void>((resolve) => {
+        try {
+          const tx = db.transaction('solveStatus', 'readonly');
+          const req = tx.objectStore('solveStatus').getAll();
+          req.onsuccess = () => {
+            (req.result || []).forEach((item: ProblemSolveStatus) => {
+              if (item.problemId.startsWith(prefix) && item.isSolved) {
+                const rawId = item.problemId.substring(prefix.length);
+                list.push({
+                  problemId: rawId,
+                  isSolved: true,
+                  durationSec: item.lastDurationSec,
+                });
+              }
+            });
+            resolve();
+          };
+          req.onerror = () => resolve();
+        } catch {
+          resolve();
+        }
+      });
+    } else if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('dsa_status_guest:')) {
+            const rawId = k.substring('dsa_status_guest:'.length);
+            const item = JSON.parse(localStorage.getItem(k) || '{}');
+            if (item.isSolved) {
+              list.push({
+                problemId: rawId,
+                isSolved: true,
+                durationSec: item.lastDurationSec,
+              });
+            }
+          }
+        }
+      } catch {}
+    } else {
+      this.memStore.solveStatus.forEach((val, key) => {
+        if (key.startsWith(prefix) && val.isSolved) {
+          const rawId = key.substring(prefix.length);
+          list.push({
+            problemId: rawId,
+            isSolved: true,
+            durationSec: val.lastDurationSec,
+          });
+        }
+      });
+    }
+
+    return list;
   }
 
   // --- Export and Import ---

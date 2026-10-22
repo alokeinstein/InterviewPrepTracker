@@ -15,24 +15,33 @@ import {
   Check,
   ArrowRight,
   Terminal,
+  Lock,
 } from 'lucide-react';
 
 interface ProblemSubmissionsTabProps {
   problemId: string;
   onRestoreCode?: (code: string) => void;
+  isGuest?: boolean;
+  onPromptAuth?: () => void;
 }
 
 export function ProblemSubmissionsTab({
   problemId,
   onRestoreCode,
+  isGuest = false,
+  onPromptAuth,
 }: ProblemSubmissionsTabProps) {
   const [snapshots, setSnapshots] = useState<AcceptedSnapshot[]>([]);
   const [selectedSnapshot, setSelectedSnapshot] = useState<AcceptedSnapshot | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    if (isGuest) {
+      setSnapshots([]);
+      return;
+    }
     localStore.listAcceptedSnapshots(problemId).then(setSnapshots);
-  }, [problemId]);
+  }, [problemId, isGuest]);
 
   const handleCopy = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -58,11 +67,26 @@ export function ProblemSubmissionsTab({
           </p>
         </div>
         <Badge variant="outline" className="font-mono text-xs">
-          {snapshots.length} Snapshot{snapshots.length === 1 ? '' : 's'}
+          {isGuest ? 'Guest Mode' : `${snapshots.length} Snapshot${snapshots.length === 1 ? '' : 's'}`}
         </Badge>
       </div>
 
-      {snapshots.length === 0 ? (
+      {isGuest ? (
+        <div className="p-8 text-center border border-dashed border-border/70 rounded-lg bg-card/20 space-y-3">
+          <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
+            <Lock className="h-5 w-5" />
+          </div>
+          <h4 className="text-sm font-semibold text-foreground">Sign in to view your submissions</h4>
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+            Submission history, optimal solution archives, and execution logs are protected and linked to your authenticated account.
+          </p>
+          {onPromptAuth && (
+            <Button size="sm" onClick={onPromptAuth} className="text-xs mt-2">
+              Sign In with Gmail
+            </Button>
+          )}
+        </div>
+      ) : snapshots.length === 0 ? (
         <div className="p-8 text-center border border-dashed border-border/70 rounded-lg bg-card/20 space-y-2">
           <Terminal className="h-8 w-8 text-muted-foreground/60 mx-auto" />
           <p className="text-xs text-muted-foreground">

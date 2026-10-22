@@ -1,6 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { getServerAuth } from '@/lib/auth';
 import { LessonRunner } from '@/features/system-design/LessonRunner';
 
 export const revalidate = 0;
@@ -12,7 +13,8 @@ export default async function ConceptLessonPage({
 }) {
   const { slug } = await params;
 
-  const user = await prisma.user.findFirst();
+  const auth = await getServerAuth();
+  const user = auth?.user;
   const concept = await prisma.concept.findUnique({
     where: { slug },
     include: {

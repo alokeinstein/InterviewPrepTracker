@@ -71,7 +71,13 @@ enum PracticeMode {
 model User {
   id                   String                 @id @default(uuid())
   email                String                 @unique
+  normalizedEmail      String?                @unique
+  passwordHash         String?
   name                 String
+  username             String?                @unique
+  normalizedUsername   String?                @unique
+  isEmailVerified      Boolean                @default(false)
+  timezone             String                 @default("UTC")
   role                 Role                   @default(USER)
   streak               Int                    @default(0)
   longestStreak        Int                    @default(0)
@@ -82,6 +88,13 @@ model User {
   lastActiveAt         DateTime?
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
+
+  profile              Profile?
+  accounts             Account[]
+  authSessions         AuthSession[]
+  otpVerifications     OtpVerification[]
+  practiceSessions     PracticeSession[]
+  practiceAttempts     PracticeAttempt[]
 
   conceptMasteries     ConceptMastery[]
   submissions          DsaSubmission[]
@@ -95,6 +108,8 @@ model User {
   sectionProgress      SectionProgress[]
 
   @@index([email])
+  @@index([normalizedEmail])
+  @@index([normalizedUsername])
 }
 
 model BookPart {
@@ -265,6 +280,8 @@ model DsaProblem {
   submissions            DsaSubmission[]
   mistakes               MistakeEntry[]
   revisionItems          RevisionItem[]
+  practiceSessions       PracticeSession[]
+  practiceAttempts       PracticeAttempt[]
 
   @@index([level])
   @@index([difficulty])
@@ -504,4 +521,118 @@ model PatternWeakness {
 
   @@unique([userId, patternId])
   @@index([userId, isFlaggedWeak])
+}
+
+enum OtpPurpose {
+  SIGNUP
+  PASSWORD_RESET
+  EMAIL_VERIFY
+}
+
+model Profile {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  username           String   @unique
+  normalizedUsername String   @unique
+  displayName        String?
+  bio                String?  @db.Text
+  avatarUrl          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([normalizedUsername])
+}
+
+model OtpVerification {
+  id              String      @id @default(uuid())
+  email           String
+  normalizedEmail String
+  otpHash         String
+  purpose         OtpPurpose  @default(SIGNUP)
+  attempts        Int         @default(0)
+  maxAttempts     Int         @default(5)
+  isUsed          Boolean     @default(false)
+  expiresAt       DateTime
+  lastSentAt      DateTime    @default(now())
+  createdAt       DateTime    @default(now())
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([normalizedEmail, purpose, isUsed])
+  @@index([expiresAt])
+}
+
+model AuthSession {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt    DateTime
+  userAgent    String?
+  ipAddress    String?
+  lastActiveAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([sessionToken])
+  @@index([expiresAt])
+}
+
+model PracticeSession {
+  id             String            @id @default(uuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId      String
+  problem        DsaProblem        @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  activityDate   String            // Format: YYYY-MM-DD
+  attemptCount   Int               @default(1)
+  lastAttemptAt  DateTime          @default(now())
+  firstAttemptAt DateTime          @default(now())
+  solved         Boolean           @default(false)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  attempts       PracticeAttempt[]
+
+  @@unique([userId, problemId, activityDate])
+  @@index([userId, activityDate])
+  @@index([userId, lastAttemptAt])
+  @@index([problemId])
+}
+
+model PracticeAttempt {
+  id              String           @id @default(uuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId       String
+  problem         DsaProblem       @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  sessionId       String?
+  session         PracticeSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  activityDate    String           // YYYY-MM-DD
+  attemptType     String           @default("IDE_SUBMISSION") // 'IDE_SOLVE' | 'IDE_SUBMISSION' | 'REVISION_CODE' | 'REVISION_HAND' | 'REVISION_MENTAL'
+  method          String           @default("IDE") // 'IDE' | 'HAND' | 'MENTAL'
+  status          String           @default("ACCEPTED") // 'ACCEPTED' | 'FAILED' | 'ATTEMPTED'
+  runtimeMs       Int              @default(0)
+  durationSec     Int              @default(0)
+  optimalityScore Float?
+  code            String?          @db.Text
+  notes           String?          @db.Text
+  createdAt       DateTime         @default(now())
+
+  @@index([userId, problemId, createdAt])
+  @@index([userId, activityDate])
+  @@index([userId, createdAt])
+}
+
+model Account {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String   // 'google'
+  providerAccountId String   // Google 'sub'
+  createdAt         DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
 }

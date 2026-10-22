@@ -1,55 +1,88 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
+import { getServerAuth } from '@/lib/auth';
 import { MasteryService } from '@/services/learning/masteryService';
+import { PracticeService } from '@/services/practice/practiceService';
+import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { ContributionHeatmap, DayActivityData } from '@/components/analytics/ContributionHeatmap';
+import { ContributionHeatmap } from '@/components/analytics/ContributionHeatmap';
 import { MonthlyActivityChart } from '@/components/analytics/MonthlyActivityChart';
 import { ProblemsOverviewCard } from '@/components/analytics/ProblemsOverviewCard';
 import { ActivityHistoryList } from '@/components/analytics/ActivityHistoryList';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Activity } from 'lucide-react';
 
 export const revalidate = 0;
 
 export default async function AnalyticsPage() {
-  const user = await prisma.user.findFirst();
-  const userId = user?.id || 'user-default-1';
+  const auth = await getServerAuth();
+  if (!auth?.user) {
+    return (
+      <div className="max-w-4xl mx-auto py-16 px-4 text-center space-y-6">
+        <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto text-primary">
+          <Activity className="h-8 w-8" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Developer Practice Analytics
+          </h1>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+            Sign in to access your activity heatmap, midnight streak calculation, one-row-per-question practice history, and algorithmic readiness index.
+          </p>
+        </div>
+        <div>
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-xs shadow-md hover:bg-primary/90 transition"
+          >
+            Sign In with Google / Gmail
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-  const [readiness, submissions, revisionAttempts, allProblems] = await Promise.all([
+  const user = auth.user;
+  const userId = user.id;
+  const timezone = user.timezone || 'UTC';
+
+  const currentYear = new Date().getFullYear();
+
+  const [
+    readiness,
+    allProblems,
+    masteredCount,
+    streakResult,
+    activityData,
+    historyResponse,
+    solvedSessions,
+  ] = await Promise.all([
     MasteryService.getReadinessReport(userId),
-    prisma.dsaSubmission.findMany({
-      where: { userId },
-      include: {
-        problem: {
-          select: { id: true, title: true, slug: true, level: true, difficulty: true },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.revisionAttempt.findMany({
-      where: {
-        revisionItem: { userId },
-      },
-      include: {
-        revisionItem: {
-          include: {
-            dsaProblem: {
-              select: { id: true, title: true, slug: true, level: true, difficulty: true },
-            },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    }),
     prisma.dsaProblem.findMany({
       select: { id: true, difficulty: true },
+    }),
+    prisma.revisionItem.count({
+      where: {
+        userId,
+        repetitionNumber: { gte: 5 },
+        intervalDays: { gte: 14 },
+      },
+    }),
+    PracticeService.refreshUserStreak(userId, timezone),
+    PracticeService.getYearActivityMap(userId, currentYear),
+    PracticeService.getLatestActivityHistory({ userId, page: 1, pageSize: 15 }),
+    prisma.practiceSession.findMany({
+      where: {
+        userId,
+        solved: true,
+      },
+      select: { problemId: true },
+      distinct: ['problemId'],
     }),
   ]);
 
   // Aggregate distinct solved problems by difficulty
-  const acceptedSubmissions = submissions.filter((s) => s.status === 'ACCEPTED');
-  const uniqueSolvedProblemIds = new Set(acceptedSubmissions.map((s) => s.problemId));
-
+  const uniqueSolvedProblemIds = new Set(solvedSessions.map((s) => s.problemId));
   const problemMap = new Map(allProblems.map((p) => [p.id, p.difficulty]));
 
   let easySolved = 0;
@@ -65,88 +98,6 @@ export default async function AnalyticsPage() {
 
   const totalSolved = uniqueSolvedProblemIds.size;
   const codingScore = totalSolved * 2 + Math.round(readiness.overallScore);
-
-  // Aggregate calendar daily activity
-  const activityData: Record<string, DayActivityData> = {};
-
-  const ensureDay = (dateStr: string) => {
-    if (!activityData[dateStr]) {
-      activityData[dateStr] = {
-        date: dateStr,
-        sessions: 0,
-        uniqueSolved: 0,
-        revisions: 0,
-        submissions: 0,
-      };
-    }
-    return activityData[dateStr];
-  };
-
-  const solvedSeen = new Set<string>();
-
-  submissions.forEach((sub) => {
-    const dStr = sub.createdAt.toISOString().slice(0, 10);
-    const day = ensureDay(dStr);
-    day.sessions += 1;
-    day.submissions += 1;
-    if (sub.status === 'ACCEPTED') {
-      const key = `${sub.problemId}`;
-      if (!solvedSeen.has(key)) {
-        solvedSeen.add(key);
-        day.uniqueSolved += 1;
-      }
-    }
-  });
-
-  revisionAttempts.forEach((att) => {
-    const dStr = att.createdAt.toISOString().slice(0, 10);
-    const day = ensureDay(dStr);
-    day.sessions += 1;
-    day.revisions += 1;
-  });
-
-  // Build unified chronological activity items
-  const activityList = [
-    ...acceptedSubmissions.map((s) => ({
-      id: `sub_${s.id}`,
-      problemId: s.problemId,
-      problemTitle: s.problem.title,
-      slug: s.problem.slug,
-      level: s.problem.level,
-      difficulty: s.problem.difficulty,
-      eventType: 'SOLVED',
-      method: 'IDE',
-      rating: s.optimalityScore ? `${Math.round(s.optimalityScore)}% Optimal` : undefined,
-      durationSec: s.runtimeMs ? Math.round(s.runtimeMs / 1000) : 0,
-      timestamp: s.createdAt,
-    })),
-    ...revisionAttempts.map((att) => {
-      const prob = att.revisionItem.dsaProblem;
-      const method = att.mode === 'CODE' ? 'IDE' : att.mode === 'HAND' ? 'HAND' : 'MENTAL';
-      return {
-        id: `att_${att.id}`,
-        problemId: prob?.id || att.revisionItemId,
-        problemTitle: prob?.title || 'Concept Revision',
-        slug: prob?.slug,
-        level: prob?.level || 1,
-        difficulty: prob?.difficulty || 'MEDIUM',
-        eventType: 'REVISED',
-        method,
-        rating: att.struggled ? 'Struggled' : 'Good Recall',
-        durationSec: att.durationSec || 60,
-        timestamp: att.createdAt,
-      };
-    }),
-  ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-  // Count 5-review mastered questions
-  const masteredCount = await prisma.revisionItem.count({
-    where: {
-      userId,
-      repetitionNumber: { gte: 5 },
-      intervalDays: { gte: 14 },
-    },
-  });
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12">
@@ -171,31 +122,32 @@ export default async function AnalyticsPage() {
         </div>
       </div>
 
-      {/* 1. Problems Overview Card & Stats (Matching Reference Image 2) */}
+      {/* 1. Problems Overview Card & Stats */}
       <ProblemsOverviewCard
         totalSolved={totalSolved}
         easySolved={easySolved}
         mediumSolved={mediumSolved}
         hardSolved={hardSolved}
         codingScore={codingScore}
-        streak={user?.streak || 4}
+        streak={streakResult.currentStreak}
         masteredCount={masteredCount}
       />
 
-      {/* 2. Yearly Contribution Heatmap (Matching Reference Image 1) */}
+      {/* 2. Yearly Contribution Heatmap (Server-derived unique sessions) */}
       <ContributionHeatmap
         activityData={activityData}
-        currentYear={2026}
+        currentYear={currentYear}
       />
 
-      {/* 3. Monthly Activity Bar Chart */}
+      {/* 3. Monthly Activity Bar Chart (Unique sessions count per day) */}
       <MonthlyActivityChart
         activityData={activityData}
       />
 
-      {/* 4. Chronological Activity History List */}
+      {/* 4. Chronological Activity History List (One row per unique problem, latest attempt at top) */}
       <ActivityHistoryList
-        initialActivities={activityList}
+        initialActivities={historyResponse.items}
+        initialTotal={historyResponse.total}
       />
 
       {/* 5. Priority Algorithmic Weaknesses */}

@@ -3,6 +3,41 @@
 All changes, migrations, and bug fixes are recorded here in reverse chronological order with exact timestamps and impact statements.
 
 --------------------------------------------------------------------------------
+[2026-10-22 | 14:00 IST] | DSA Arena UI/UX Redesign, Enlarged Level Cards & Simplistic vs Detailed View Switcher
+- Action: Added & Refactored
+- Files Touched: src/app/dsa/page.tsx, src/app/levels/[levelId]/page.tsx, src/components/dsa/LevelCardGrid.tsx, src/components/dsa/LevelProblemGrid.tsx, src/components/dsa/SimplisticProblemCard.tsx, src/lib/dsa/levelMetadata.ts, tests/level-cards-and-view-mode.test.ts, package.json
+- Prisma/DB Impact: None (read-only query optimization; eliminated unneeded 500-question table queries from /dsa)
+- Summary: Addressed user feedback to streamline curriculum navigation and remove UI clutter:
+  1. Main `/dsa` Page: Completely removed the "All Curriculum Problems" 500-question table and pagination controls, turning `/dsa` into an uncluttered Curriculum Progression Hub.
+  2. Enlarged Level Cards (`LevelCardGrid.tsx`): Expanded from 6 cramped columns to a spacious 3-column layout (`grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5`). Added styled icon containers, Level badges (`LEVEL 01`), question counts, status pills (`Mastered ✓`, `In Progress`, `Unstarted`), concept tags, smooth gradient progress bars, dynamic "Open Level →" CTA, and in-place level search & status filtering.
+  3. Centralized Level Metadata: Created `src/lib/dsa/levelMetadata.ts` centralizing titles, topics, descriptions, and concept tags for all 23 levels.
+  4. Simplistic vs Detailed View Switcher (`/levels/[levelId]`): Built `SimplisticProblemCard.tsx` (clean 3-column cards with #ID, Level, Difficulty, Title, Pattern, Solved/Time, Practice link) and `LevelProblemGrid.tsx` with a Card Layout switcher. Defaults to Simplistic view and persists user choice in `localStorage` (`dsa_level_card_view_mode`).
+  5. Automated Verification: Added `tests/level-cards-and-view-mode.test.ts`. All 58 tests across 11 test suites pass with 0 errors.
+--------------------------------------------------------------------------------
+[2026-10-22 | 11:30 IST] | LeetCode Workspace Splitters, Typography Engine & React 19 Timer Fix
+- Action: Added & Refactored
+- Files Touched: src/features/dsa/ProblemWorkspace.tsx, src/components/dsa/FormattedProblemStatement.tsx, src/components/dsa/ExecutionConsole.tsx, src/components/dsa/ProblemTimer.tsx, tests/workspace-splitters-and-typography.test.ts
+- Prisma/DB Impact: None
+- Summary: Upgraded problem-solving workspace to professional LeetCode standards:
+  1. Dual Independent Splitters: Built vertical splitter (Problem Statement vs Editor/Console) with 20%–80% ratio constraints, and horizontal splitter (Monaco Editor vs Console) with 150px/100px minimum bounds.
+  2. Pointer Capture & Accessibility: Added `setPointerCapture` / `releasePointerCapture` to eliminate pointer dropping over Monaco iframes, plus keyboard arrow key resizing (`ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`).
+  3. 60fps Monaco Resize: Integrated `ResizeObserver` on Monaco editor container for synchronous layout recalculations during drag operations without stutter.
+  4. Typography Engine: Created `FormattedProblemStatement.tsx` transforming inline identifiers into LeetCode-style code pills (`.dsa-code-pill`), styled example callout boxes, and formatted constraints.
+  5. Execution Console: Styled `ExecutionConsole.tsx` with LeetCode-matching empty state ("You must run your code first"), runtime/memory percentile benchmark chips, and failure analysis breakdown.
+  6. ProblemTimer React 19 Fix: Resolved `setState` in render error by decoupling duration callbacks through `timerDurationRef`.
+  7. Automated Tests: Added `tests/workspace-splitters-and-typography.test.ts`. 100% passing.
+--------------------------------------------------------------------------------
+[2026-10-22 | 09:45 IST] | Client-Side Persistence, Named Checkpoints & 15-Rule Revision Policy Verification
+- Action: Added & Tested
+- Files Touched: src/lib/storage/indexedDb.ts, src/components/dsa/ProblemCheckpointsModal.tsx, src/components/dsa/ProblemNotesTab.tsx, src/components/dsa/ProblemSubmissionsTab.tsx, tests/persistence-and-analytics.test.ts, tests/revision-policy-15-rules.test.ts
+- Prisma/DB Impact: None (client storage layer with IndexedDB & localStorage fallback)
+- Summary: Implemented resilient offline persistence and formalized revision engine invariants:
+  1. IndexedDB Client Storage: Built `indexedDb.ts` supporting problem draft autosave, named checkpoints, accepted submission snapshots, and full JSON backup export/import with validation.
+  2. Checkpoints Modal: Built `ProblemCheckpointsModal.tsx` allowing candidates to save, preview, diff, and restore named code checkpoints during problem exploration.
+  3. Revisit Detection: Displays solved status badge, best solve duration, last solve duration, and date when revisiting any previously solved problem.
+  4. Revision Policy Formalization: Created `tests/revision-policy-15-rules.test.ts` verifying all 15 core rules of the Spaced Repetition engine (initial intervals, failure streak resets, multi-modal review merging, solution exposure penalties, mastery qualification criteria, queue ordering).
+  5. Automated Tests: Added `tests/persistence-and-analytics.test.ts` and `tests/revision-policy-15-rules.test.ts`. 100% passing.
+--------------------------------------------------------------------------------
 [2026-10-21 | 23:32 IST] | Phase 5: Levels 21–23 Generation, Scale-Up & Verification (73 Problems) — Curriculum 100% Complete (498/498 Problems)
 - Action: Generated, Scaled, Populated & 100% Empirically Verified
 - Files Touched: scripts/generators/level21.ts, scripts/generators/level22.ts, scripts/generators/level23.ts, src/services/execution/runnerWorker.js, scripts/batchPopulate.ts, Source/levels/level[21-23].json
