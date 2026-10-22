@@ -24,6 +24,10 @@ import {
   ChevronDown,
   ChevronRight,
   Code2,
+  PenTool,
+  Brain,
+  RotateCcw,
+  Check,
 } from 'lucide-react';
 
 interface TestCaseItem {
@@ -57,6 +61,9 @@ interface ProblemWorkspaceProps {
     optimalSolution: string | null;
     optimalTimeComplexity: string | null;
     optimalSpaceComplexity: string | null;
+    suboptimalSolution?: string | null;
+    suboptimalTimeComplexity?: string | null;
+    suboptimalSpaceComplexity?: string | null;
     optimalRuntimeMs?: number;
     maxAllowedRuntimeMs?: number;
     hints: string[];
@@ -121,6 +128,41 @@ export function ProblemWorkspace({ problem }: ProblemWorkspaceProps) {
   const [correctiveAction, setCorrectiveAction] = useState('');
   const [isSavingMistake, setIsSavingMistake] = useState(false);
   const [mistakeSaved, setMistakeSaved] = useState(false);
+
+  // Multi-Modal Practice Tracking
+  const [isLoggingPractice, setIsLoggingPractice] = useState(false);
+  const [struggledPractice, setStruggledPractice] = useState(false);
+  const [practiceSuccessMsg, setPracticeSuccessMsg] = useState<string | null>(null);
+  const [solutionTab, setSolutionTab] = useState<'optimal' | 'suboptimal'>('optimal');
+
+  const logPracticeMode = async (mode: 'CODE' | 'HAND' | 'MENTAL') => {
+    setIsLoggingPractice(true);
+    try {
+      const res = await fetch('/api/revision/log-practice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          problemId: problem.id,
+          mode,
+          struggled: struggledPractice || unlockedStages.includes(5),
+          durationSec: mode === 'CODE' ? 300 : mode === 'HAND' ? 180 : 60,
+          qualityScore: (struggledPractice || unlockedStages.includes(5)) ? 2 : 4,
+          optimalityScore: executionResult?.optimalityScore || 100,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.result) {
+        const cad = data.result.cadence;
+        const modeNames = { CODE: 'IDE Code Solve', HAND: 'Dry-Run / Hand Solve', MENTAL: 'In-Mind Recall' };
+        setPracticeSuccessMsg(`Recorded ${modeNames[mode]}! Next review: in ${cad.intervalDays}d (${cad.recommendedMode})`);
+        setTimeout(() => setPracticeSuccessMsg(null), 5000);
+      }
+    } catch (err) {
+      console.error('Failed to log practice:', err);
+    } finally {
+      setIsLoggingPractice(false);
+    }
+  };
 
   // Generate 5-stage progressive hints structure
   const progressiveHints = useMemo(() => {
@@ -306,6 +348,70 @@ export function ProblemWorkspace({ problem }: ProblemWorkspaceProps) {
         </div>
       </div>
 
+      {/* Multi-Modal Practice & Revision Bar */}
+      <div className="p-3.5 rounded-xl border border-border bg-card/80 backdrop-blur flex flex-col md:flex-row md:items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono font-bold uppercase text-muted-foreground flex items-center gap-1.5">
+            <RotateCcw className="w-3.5 h-3.5 text-primary" />
+            <span>Multi-Modal Practice:</span>
+          </span>
+          {practiceSuccessMsg && (
+            <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded flex items-center gap-1 animate-fadeIn">
+              <Check className="w-3 h-3" />
+              {practiceSuccessMsg}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer select-none px-2 py-1 rounded bg-muted/30 border border-border/60">
+            <input
+              type="checkbox"
+              checked={struggledPractice}
+              onChange={(e) => setStruggledPractice(e.target.checked)}
+              className="w-3.5 h-3.5 rounded border-border text-primary cursor-pointer"
+            />
+            <span className={struggledPractice ? 'text-rose-400 font-semibold' : ''}>Struggled / Needed Hint</span>
+          </label>
+
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isLoggingPractice}
+            onClick={() => logPracticeMode('CODE')}
+            className="text-xs h-8 gap-1.5 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+            title="Log Mode 1: Solved in IDE"
+          >
+            <Code2 className="w-3.5 h-3.5" />
+            <span>Solved in IDE</span>
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isLoggingPractice}
+            onClick={() => logPracticeMode('HAND')}
+            className="text-xs h-8 gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+            title="Log Mode 2: Solved by Hand / Whiteboard Dry Run"
+          >
+            <PenTool className="w-3.5 h-3.5" />
+            <span>Solved by Hand</span>
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isLoggingPractice}
+            onClick={() => logPracticeMode('MENTAL')}
+            className="text-xs h-8 gap-1.5 border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+            title="Log Mode 3: Solved in Mind / Pattern Recognition"
+          >
+            <Brain className="w-3.5 h-3.5" />
+            <span>Solved in Mind</span>
+          </Button>
+        </div>
+      </div>
+
       {/* 15-Step Framework Drawer */}
       {showWorkflow && (
         <Card className="border-primary/20 bg-muted/20 animate-in fade-in">
@@ -457,30 +563,80 @@ export function ProblemWorkspace({ problem }: ProblemWorkspaceProps) {
                   </p>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] uppercase font-bold text-amber-500">
-                      Reference Code
-                    </span>
-                    <div className="flex gap-1">
-                      {(['javascript', 'python', 'cpp'] as const).map((lang) => (
-                        <button
-                          key={lang}
-                          onClick={() => setSolutionRefLang(lang)}
-                          className={`px-2 py-0.5 text-[10px] rounded uppercase font-mono ${
-                            solutionRefLang === lang
-                              ? 'bg-primary text-primary-foreground font-bold'
-                              : 'bg-muted text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          {lang}
-                        </button>
-                      ))}
+                {/* Dual Reference Solutions & Optimality Benchmarking */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between border-b border-border pb-2 flex-wrap gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setSolutionTab('optimal')}
+                        className={`text-xs px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition ${
+                          solutionTab === 'optimal'
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        <span>Optimal Solution (100% Benchmark)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSolutionTab('suboptimal')}
+                        className={`text-xs px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition ${
+                          solutionTab === 'suboptimal'
+                            ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <span>Sub-Optimal Brute Force (50% Benchmark)</span>
+                      </button>
                     </div>
+
+                    {solutionTab === 'optimal' && (
+                      <div className="flex gap-1">
+                        {(['javascript', 'python', 'cpp'] as const).map((lang) => (
+                          <button
+                            key={lang}
+                            onClick={() => setSolutionRefLang(lang)}
+                            className={`px-2 py-0.5 text-[10px] rounded uppercase font-mono ${
+                              solutionRefLang === lang
+                                ? 'bg-primary text-primary-foreground font-bold'
+                                : 'bg-muted text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            {lang}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <pre className="p-3 bg-background rounded-lg border border-border text-foreground overflow-x-auto text-[11px]">
-                    {progressiveHints.stage5.implementations[solutionRefLang]}
-                  </pre>
+
+                  {solutionTab === 'optimal' ? (
+                    <div>
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+                        <span>Target Asymptotic Bound: <strong className="text-emerald-400 font-mono">{problem.optimalTimeComplexity || 'O(N)'}</strong> Time, <strong className="text-emerald-400 font-mono">{problem.optimalSpaceComplexity || 'O(1)'}</strong> Space</span>
+                        <span className="text-emerald-400 font-mono font-bold">100% Score</span>
+                      </div>
+                      <pre className="p-3 bg-background rounded-lg border border-border text-foreground overflow-x-auto text-[11px]">
+                        {progressiveHints.stage5.implementations[solutionRefLang]}
+                      </pre>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+                        <span>Brute Force Complexity: <strong className="text-amber-400 font-mono">{problem.suboptimalTimeComplexity || 'O(N^2)'}</strong> Time, <strong className="text-amber-400 font-mono">{problem.suboptimalSpaceComplexity || 'O(1)'}</strong> Space</span>
+                        <span className="text-amber-400 font-mono font-bold">50% Score (Hits TLE on Stress Tests)</span>
+                      </div>
+                      <pre className="p-3 bg-background rounded-lg border border-border text-amber-300/90 overflow-x-auto text-[11px]">
+                        {problem.suboptimalSolution || `// Sub-optimal Brute Force for ${problem.title}\n// Quadratic or un-memoized approach resulting in ${problem.suboptimalTimeComplexity || 'O(N^2)'} runtime.\nfunction solveBruteForce(...args) {\n  // Brute force nested scans\n}`}
+                      </pre>
+                      <p className="text-[11px] text-muted-foreground font-sans mt-1">
+                        Why this is sub-optimal: On input sizes N &ge; 10^4, quadratic iterations exceed 10^8 operations, causing Time Limit Exceeded (TLE) in automated grading engines.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { ItemType } from '@prisma/client';
+import { ItemType, PracticeMode, Difficulty } from '@prisma/client';
 
 export interface SM2Result {
   repetitionNumber: number;
@@ -8,13 +8,27 @@ export interface SM2Result {
   nextReviewDate: Date;
 }
 
+export interface ProgressiveCadenceResult {
+  currentStage: number;
+  intervalDays: number;
+  nextReviewDate: Date;
+  recommendedMode: PracticeMode;
+}
+
+export interface PracticeLogInput {
+  userId: string;
+  problemId: string;
+  mode: PracticeMode;
+  struggled?: boolean;
+  notes?: string;
+  qualityScore?: number;
+  durationSec?: number;
+  optimalityScore?: number;
+}
+
 export class SpacedRepetitionService {
   /**
    * Calculates new SM-2 spaced repetition parameters based on recall performance.
-   * @param quality 0-5 (0: total blackout, 5: perfect instant recall)
-   * @param repetitions Current repetition count
-   * @param prevInterval Current interval in days
-   * @param prevEaseFactor Current ease factor (default 2.5)
    */
   static calculateSM2(
     quality: number,
@@ -30,7 +44,6 @@ export class SpacedRepetitionService {
     let newInterval: number;
 
     if (quality < 3) {
-      // Failed recall: reset intervals back to immediate review
       newRepetitions = 0;
       newInterval = 1;
     } else {
@@ -57,30 +70,170 @@ export class SpacedRepetitionService {
   }
 
   /**
-   * Retrieves all items due for revision on or before today for a given user.
+   * Spaced-Repetition State Machine Cadence:
+   * Stage 0 (Unseen): Initial solve in IDE.
+   * Stage 1 (1st Solve Completed): Schedule Revision 1 after +1 to 3 days. Recommended Mode = Solve by Hand.
+   * Stage 2 (2nd Practice Completed - By Hand / Code): Schedule Revision 2 after +7 days (1 week). Recommended Mode = By Hand (Med/Hard) or Mental Solve (Easy).
+   * Stage 3 (3rd+ Practice Completed - Mental Solve): Expanding intervals (+14 days, +30 days). Recommended Mode = Look & Solve in Mind.
+   * Difficulty / Struggle Override: If marked "Struggled" or needed Hint 5, reset interval to +1 day and force mode back to Code in IDE or Solve by Hand.
    */
-  static async getDueRevisions(userId: string) {
-    const endOfToday = new Date();
-    endOfToday.setHours(23, 59, 59, 999);
+  static calculateProgressiveCadence(
+    currentStage: number,
+    difficulty: Difficulty = 'MEDIUM',
+    struggled: boolean = false,
+    optimalityScore: number = 100
+  ): ProgressiveCadenceResult {
+    const now = new Date();
 
-    return await prisma.revisionItem.findMany({
+    if (struggled) {
+      // Struggle override: Reset to +1 day, recommend Code or Hand solve
+      const nextReviewDate = new Date(now);
+      nextReviewDate.setDate(nextReviewDate.getDate() + 1);
+      nextReviewDate.setHours(0, 0, 0, 0);
+
+      return {
+        currentStage: Math.max(1, currentStage),
+        intervalDays: 1,
+        nextReviewDate,
+        recommendedMode: currentStage === 0 ? 'CODE' : 'HAND',
+      };
+    }
+
+    let nextStage = currentStage + 1;
+    let intervalDays = 1;
+    let recommendedMode: PracticeMode = 'CODE';
+
+    if (nextStage === 1) {
+      // 1st solve completed -> Stage 1
+      // Easy = 3 days, Medium = 2 days, Hard = 1 day (or sub-optimal < 75% = 1 day)
+      if (difficulty === 'EASY' && optimalityScore >= 75) {
+        intervalDays = 3;
+      } else if (difficulty === 'MEDIUM' && optimalityScore >= 75) {
+        intervalDays = 2;
+      } else {
+        intervalDays = 1;
+      }
+      recommendedMode = 'HAND'; // Next: Solve by Hand
+    } else if (nextStage === 2) {
+      // 2nd practice completed -> Stage 2
+      intervalDays = 7; // 1 week
+      recommendedMode = difficulty === 'EASY' ? 'MENTAL' : 'HAND';
+    } else if (nextStage === 3) {
+      // 3rd practice completed -> Stage 3
+      intervalDays = 14; // 2 weeks
+      recommendedMode = 'MENTAL';
+    } else {
+      // 4th+ practice completed -> Stage 4+
+      intervalDays = 30; // 1 month
+      recommendedMode = 'MENTAL';
+    }
+
+    const nextReviewDate = new Date(now);
+    nextReviewDate.setDate(nextReviewDate.getDate() + intervalDays);
+    nextReviewDate.setHours(0, 0, 0, 0);
+
+    return {
+      currentStage: nextStage,
+      intervalDays,
+      nextReviewDate,
+      recommendedMode,
+    };
+  }
+
+  /**
+   * Records a multi-modal practice attempt (IDE, Hand, Mental) and persists telemetry.
+   */
+  static async recordPractice(input: PracticeLogInput) {
+    const { userId, problemId, mode, struggled = false, notes, durationSec = 60, optimalityScore = 100 } = input;
+
+    // 1. Fetch problem metadata
+    const problem = await prisma.dsaProblem.findUnique({
+      where: { id: problemId },
+      select: { id: true, difficulty: true, level: true, title: true },
+    });
+    if (!problem) throw new Error(`Problem with ID ${problemId} not found.`);
+
+    // 2. Find or create existing RevisionItem for this problem
+    let revisionItem = await prisma.revisionItem.findFirst({
       where: {
         userId,
-        nextReviewDate: { lte: endOfToday },
+        dsaProblemId: problem.id,
       },
-      include: {
-        dsaProblem: {
-          select: { id: true, title: true, slug: true, difficulty: true, topic: true, optimalTimeComplexity: true },
-        },
-        concept: {
-          select: { id: true, name: true, slug: true, summary: true, whyItMatters: true, sourceRef: true },
-        },
-        mistake: {
-          select: { id: true, violatedInvariant: true, category: true, correctiveAction: true },
-        },
-      },
-      orderBy: { nextReviewDate: 'asc' },
     });
+
+    const currentStage = revisionItem?.currentStage ?? 0;
+    const cadence = this.calculateProgressiveCadence(
+      currentStage,
+      problem.difficulty,
+      struggled,
+      optimalityScore
+    );
+
+    // SM-2 calculation for fallback scoring
+    const qualityScore = input.qualityScore ?? (struggled ? 2 : 4);
+    const sm2 = this.calculateSM2(
+      qualityScore,
+      revisionItem?.repetitionNumber ?? 0,
+      cadence.intervalDays,
+      revisionItem?.easeFactor ?? 2.5
+    );
+
+    if (!revisionItem) {
+      revisionItem = await prisma.revisionItem.create({
+        data: {
+          userId,
+          itemType: ItemType.DSA_PROBLEM,
+          dsaProblemId: problem.id,
+          repetitionNumber: 1,
+          intervalDays: cadence.intervalDays,
+          easeFactor: sm2.easeFactor,
+          nextReviewDate: cadence.nextReviewDate,
+          lastReviewDate: new Date(),
+          stabilityScore: Number((cadence.intervalDays / 30).toFixed(2)),
+          codePracticeCount: mode === 'CODE' ? 1 : 0,
+          handPracticeCount: mode === 'HAND' ? 1 : 0,
+          mentalPracticeCount: mode === 'MENTAL' ? 1 : 0,
+          recommendedMode: cadence.recommendedMode,
+          currentStage: cadence.currentStage,
+        },
+      });
+    } else {
+      revisionItem = await prisma.revisionItem.update({
+        where: { id: revisionItem.id },
+        data: {
+          repetitionNumber: revisionItem.repetitionNumber + 1,
+          intervalDays: cadence.intervalDays,
+          easeFactor: sm2.easeFactor,
+          nextReviewDate: cadence.nextReviewDate,
+          lastReviewDate: new Date(),
+          stabilityScore: Number((cadence.intervalDays / 30).toFixed(2)),
+          codePracticeCount: mode === 'CODE' ? revisionItem.codePracticeCount + 1 : revisionItem.codePracticeCount,
+          handPracticeCount: mode === 'HAND' ? revisionItem.handPracticeCount + 1 : revisionItem.handPracticeCount,
+          mentalPracticeCount: mode === 'MENTAL' ? revisionItem.mentalPracticeCount + 1 : revisionItem.mentalPracticeCount,
+          recommendedMode: cadence.recommendedMode,
+          currentStage: cadence.currentStage,
+        },
+      });
+    }
+
+    // 3. Log RevisionAttempt
+    const attempt = await prisma.revisionAttempt.create({
+      data: {
+        revisionItemId: revisionItem.id,
+        qualityScore,
+        mode,
+        struggled,
+        notes: notes || null,
+        recalledInvariants: !struggled,
+        durationSec,
+      },
+    });
+
+    return {
+      revisionItem,
+      attempt,
+      cadence,
+    };
   }
 
   /**
@@ -125,5 +278,107 @@ export class SpacedRepetitionService {
         },
       }),
     ]);
+  }
+
+  /**
+   * Retrieves all items due for revision on or before today for a given user.
+   */
+  static async getDueRevisions(userId: string) {
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    return await prisma.revisionItem.findMany({
+      where: {
+        userId,
+        nextReviewDate: { lte: endOfToday },
+      },
+      include: {
+        dsaProblem: {
+          select: { id: true, title: true, slug: true, difficulty: true, topic: true, level: true, optimalTimeComplexity: true },
+        },
+        concept: {
+          select: { id: true, name: true, slug: true, summary: true, whyItMatters: true, sourceRef: true },
+        },
+        mistake: {
+          select: { id: true, violatedInvariant: true, category: true, correctiveAction: true },
+        },
+      },
+      orderBy: { nextReviewDate: 'asc' },
+    });
+  }
+
+  /**
+   * Fetches practice telemetry for multiple problem IDs for a user.
+   */
+  static async getBatchTelemetry(userId: string, problemIds: string[]) {
+    const items = await prisma.revisionItem.findMany({
+      where: {
+        userId,
+        dsaProblemId: { in: problemIds },
+      },
+      include: {
+        attempts: {
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        },
+      },
+    });
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const map = new Map<string, {
+      totalPracticed: number;
+      codeCount: number;
+      handCount: number;
+      mentalCount: number;
+      lastPracticedAt: Date | null;
+      nextReviewDate: Date | null;
+      isDue: boolean;
+      isOverdue: boolean;
+      dueStatusText: string;
+      currentStage: number;
+      recommendedMode: PracticeMode;
+    }>();
+
+    for (const item of items) {
+      if (!item.dsaProblemId) continue;
+      const total = item.codePracticeCount + item.handPracticeCount + item.mentalPracticeCount;
+      const reviewDate = new Date(item.nextReviewDate);
+      reviewDate.setHours(0, 0, 0, 0);
+
+      const diffTime = reviewDate.getTime() - startOfToday.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      let dueStatusText = '';
+      let isDue = false;
+      let isOverdue = false;
+
+      if (diffDays < 0) {
+        isOverdue = true;
+        dueStatusText = `Overdue by ${Math.abs(diffDays)}d`;
+      } else if (diffDays === 0) {
+        isDue = true;
+        dueStatusText = 'Due Today';
+      } else {
+        dueStatusText = `Next: in ${diffDays}d`;
+      }
+
+      map.set(item.dsaProblemId, {
+        totalPracticed: total,
+        codeCount: item.codePracticeCount,
+        handCount: item.handPracticeCount,
+        mentalCount: item.mentalPracticeCount,
+        lastPracticedAt: item.lastReviewDate,
+        nextReviewDate: item.nextReviewDate,
+        isDue,
+        isOverdue,
+        dueStatusText,
+        currentStage: item.currentStage,
+        recommendedMode: item.recommendedMode,
+      });
+    }
+
+    return map;
   }
 }

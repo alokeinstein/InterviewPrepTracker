@@ -112,13 +112,13 @@ export const LevelCardGrid: React.FC<LevelCardGridProps> = ({
           return (
             <Link
               key={lvl.levelNumber}
-              href={isSelected ? '/dsa' : `/dsa?level=${lvl.levelNumber}`}
+              href={`/levels/${lvl.levelNumber}`}
               className="group block focus:outline-none"
             >
               <Card className={`h-full p-3.5 flex flex-col justify-between transition-all duration-200 cursor-pointer ${
                 isSelected 
                   ? 'border-primary bg-primary/10 shadow-md shadow-primary/5 ring-1 ring-primary' 
-                  : 'hover:border-primary/50 hover:bg-card/80'
+                  : 'hover:border-primary/50 hover:bg-card/90 hover:shadow-sm'
               }`}>
                 <div>
                   <div className="flex items-center justify-between gap-1 mb-2">
