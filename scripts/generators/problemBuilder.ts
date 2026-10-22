@@ -146,5 +146,6 @@ export function createProblem(def: ProblemDef): GeneratedProblem {
     commonMistakes: def.commonMistakes,
     hints: def.hints,
     testCases,
+    oracleFn: def.oracleFn,
   };
 }

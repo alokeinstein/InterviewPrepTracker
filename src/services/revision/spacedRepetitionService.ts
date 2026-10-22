@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { ItemType, PracticeMode, Difficulty } from '@prisma/client';
+import { RevisionEngine, RecallRating } from './revisionEngine';
 
 export interface SM2Result {
   repetitionNumber: number;
@@ -169,14 +170,37 @@ export class SpacedRepetitionService {
       optimalityScore
     );
 
-    // SM-2 calculation for fallback scoring
     const qualityScore = input.qualityScore ?? (struggled ? 2 : 4);
-    const sm2 = this.calculateSM2(
-      qualityScore,
-      revisionItem?.repetitionNumber ?? 0,
-      cadence.intervalDays,
-      revisionItem?.easeFactor ?? 2.5
-    );
+    const mappedRating: RecallRating =
+      qualityScore <= 1 ? 'AGAIN' : qualityScore <= 2 ? 'DIFFICULT' : qualityScore <= 4 ? 'GOOD' : 'EASY';
+
+    const revEval = RevisionEngine.evaluateReview({
+      questionId: problem.id,
+      method: mode === 'CODE' ? 'IDE' : mode === 'HAND' ? 'HAND' : 'MENTAL',
+      rating: mappedRating,
+      durationSec,
+      solutionRevealed: Boolean(struggled && optimalityScore < 80),
+      notes,
+      currentRecord: revisionItem
+        ? {
+            questionId: problem.id,
+            repetitionCount: revisionItem.repetitionNumber,
+            consecutiveSuccessCount: revisionItem.repetitionNumber,
+            intervalDays: revisionItem.intervalDays,
+            easeFactor: revisionItem.easeFactor,
+            lastReviewDate: revisionItem.lastReviewDate,
+            nextReviewDate: revisionItem.nextReviewDate,
+            isMastered: revisionItem.repetitionNumber >= 5 && revisionItem.intervalDays >= 14,
+            masteredAt: null,
+            hasPassedLongInterval: revisionItem.intervalDays >= 14,
+            history: [],
+          }
+        : null,
+    });
+
+    const finalInterval = revEval.nextRecord.intervalDays;
+    const finalNextReview = revEval.nextRecord.nextReviewDate;
+    const finalEase = revEval.nextRecord.easeFactor;
 
     if (!revisionItem) {
       revisionItem = await prisma.revisionItem.create({
@@ -185,11 +209,11 @@ export class SpacedRepetitionService {
           itemType: ItemType.DSA_PROBLEM,
           dsaProblemId: problem.id,
           repetitionNumber: 1,
-          intervalDays: cadence.intervalDays,
-          easeFactor: sm2.easeFactor,
-          nextReviewDate: cadence.nextReviewDate,
+          intervalDays: finalInterval,
+          easeFactor: finalEase,
+          nextReviewDate: finalNextReview,
           lastReviewDate: new Date(),
-          stabilityScore: Number((cadence.intervalDays / 30).toFixed(2)),
+          stabilityScore: Number((finalInterval / 30).toFixed(2)),
           codePracticeCount: mode === 'CODE' ? 1 : 0,
           handPracticeCount: mode === 'HAND' ? 1 : 0,
           mentalPracticeCount: mode === 'MENTAL' ? 1 : 0,
@@ -202,11 +226,11 @@ export class SpacedRepetitionService {
         where: { id: revisionItem.id },
         data: {
           repetitionNumber: revisionItem.repetitionNumber + 1,
-          intervalDays: cadence.intervalDays,
-          easeFactor: sm2.easeFactor,
-          nextReviewDate: cadence.nextReviewDate,
+          intervalDays: finalInterval,
+          easeFactor: finalEase,
+          nextReviewDate: finalNextReview,
           lastReviewDate: new Date(),
-          stabilityScore: Number((cadence.intervalDays / 30).toFixed(2)),
+          stabilityScore: Number((finalInterval / 30).toFixed(2)),
           codePracticeCount: mode === 'CODE' ? revisionItem.codePracticeCount + 1 : revisionItem.codePracticeCount,
           handPracticeCount: mode === 'HAND' ? revisionItem.handPracticeCount + 1 : revisionItem.handPracticeCount,
           mentalPracticeCount: mode === 'MENTAL' ? revisionItem.mentalPracticeCount + 1 : revisionItem.mentalPracticeCount,

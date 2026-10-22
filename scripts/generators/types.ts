@@ -34,6 +34,7 @@ export interface GeneratedProblem {
   commonMistakes: string[];
   hints: string[];
   testCases: GeneratedTestCase[];
+  oracleFn?: (...args: any[]) => any;
 }
 
 export interface LevelPayload {

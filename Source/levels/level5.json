@@ -1861,9 +1861,9 @@
       "optimalSolution": "function findPeakElement(nums) {\n  let left = 0, right = nums.length - 1;\n  while (left < right) {\n    const mid = Math.floor(left + (right - left) / 2);\n    if (nums[mid] > nums[mid + 1]) right = mid;\n    else left = mid + 1;\n  }\n  return left;\n}",
       "optimalTimeComplexity": "O(log N)",
       "optimalSpaceComplexity": "O(1)",
-      "suboptimalSolution": "function findPeakElement(nums) {\n  for (let i = 0; i < nums.length - 1; i++) {\n    if (nums[i] > nums[i + 1]) return i;\n  }\n  return nums.length - 1;\n}",
-      "suboptimalTimeComplexity": "O(N)",
-      "suboptimalSpaceComplexity": "O(1)",
+      "suboptimalSolution": "function findPeakElement(nums) {\n  function search(l, r) {\n    if (l === r) return l;\n    const mid = Math.floor(l + (r - l) / 2);\n    if (nums[mid] > nums[mid + 1]) return search(l, mid);\n    return search(mid + 1, r);\n  }\n  return search(0, nums.length - 1);\n}",
+      "suboptimalTimeComplexity": "O(log N)",
+      "suboptimalSpaceComplexity": "O(log N) auxiliary recursion stack",
       "commonMistakes": [
         "Linear scanning O(N) instead of binary searching the slope O(log N)"
       ],

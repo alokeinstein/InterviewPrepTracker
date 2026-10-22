@@ -24,9 +24,30 @@ export default async function ProblemDetailPage({
     notFound();
   }
 
+  const user = await prisma.user.findFirst();
+  const lastAccepted = user
+    ? await prisma.dsaSubmission.findFirst({
+        where: {
+          userId: user.id,
+          problemId: problem.id,
+          status: 'ACCEPTED',
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+    : null;
+
+  const serverSolveInfo = {
+    isSolved: !!lastAccepted,
+    lastSolvedAt: lastAccepted?.createdAt ? lastAccepted.createdAt.toISOString() : null,
+    durationSec: lastAccepted?.runtimeMs ? Math.round(lastAccepted.runtimeMs / 1000) : null,
+  };
+
   return (
     <div className="py-2">
-      <ProblemWorkspace problem={problem as any} />
+      <ProblemWorkspace
+        problem={problem as any}
+        serverSolveInfo={serverSolveInfo}
+      />
     </div>
   );
 }

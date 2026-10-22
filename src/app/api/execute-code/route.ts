@@ -41,9 +41,10 @@ export async function POST(req: NextRequest) {
         isHidden: tc.isHidden,
       }));
     } else {
-      // "Run Code" executes only public sample test cases
+      // "Run Code" executes approx 3-4 visible sample and quick tests
       const publicCases = problem.testCases.filter((tc) => !tc.isHidden);
-      testCasesToRun = (publicCases.length > 0 ? publicCases : problem.testCases).map((tc) => ({
+      const sourceCases = publicCases.length > 0 ? publicCases : problem.testCases;
+      testCasesToRun = sourceCases.slice(0, 4).map((tc) => ({
         input: tc.input,
         expectedOutput: tc.expectedOutput,
         isHidden: false,
@@ -68,8 +69,23 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    // Record submission in database if this is a submission attempt
-    if (isSubmission && problemId) {
+    // Hidden Test Case Protection: Never expose hidden test inputs or expected outputs to browser
+    if (isSubmission && result.failedTestCase && result.status !== 'ACCEPTED') {
+      const failedIdx = result.testCasesPassed;
+      const failingDef = testCasesToRun[failedIdx];
+      if (failingDef && failingDef.isHidden) {
+        result.failedTestCase = {
+          input: '[Protected Hidden Test Case]',
+          expected: '[Protected Hidden Test Case]',
+          actual: 'Solution produced incorrect output or exception on private hidden test case.',
+        };
+      }
+    }
+
+    // Submission Persistence Policy:
+    // Only accepted submissions create permanent user-visible submission records.
+    // Failed submissions display diagnostics to the user without polluting permanent submission history.
+    if (isSubmission && problemId && result.status === 'ACCEPTED') {
       const user = await prisma.user.findFirst();
       if (user) {
         await prisma.dsaSubmission.create({
@@ -78,7 +94,7 @@ export async function POST(req: NextRequest) {
             problemId,
             code,
             language,
-            status: result.status as SubmissionStatus,
+            status: SubmissionStatus.ACCEPTED,
             runtimeMs: result.runtimeMs,
             memoryKb: result.memoryKb,
             optimalityScore: result.optimalityScore ?? 0.0,
@@ -86,7 +102,7 @@ export async function POST(req: NextRequest) {
             testCasesPassed: result.testCasesPassed,
             totalTestCases: result.totalTestCases,
             hintCountUsed,
-            failedTestCase: result.failedTestCase ? JSON.stringify(result.failedTestCase) : null,
+            failedTestCase: null,
             userConfidenceBefore,
           },
         });

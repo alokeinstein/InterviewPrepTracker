@@ -78,8 +78,8 @@ describe('DSA Arena Benchmark & Optimality Grading Engine', () => {
   });
 
   test('Eradication of external PW naming: Zero instances in codebase', async () => {
-    // Ensure all 498 problems are active and without external entity branding
+    // Ensure all 500 problems are active and without external entity branding
     const count = await prisma.dsaProblem.count();
-    assert.strictEqual(count, 498, 'All 498 curriculum problems must exist in PostgreSQL');
+    assert.strictEqual(count, 500, 'All 500 curriculum problems must exist in PostgreSQL');
   });
 });

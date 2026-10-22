@@ -2329,8 +2329,8 @@
       "examples": [
         {
           "input": "words = [\"abcd\",\"dcba\",\"lls\",\"s\",\"sssll\"]",
-          "output": "[[0,1],[1,0],[3,2],[2,4]]",
-          "explanation": "The palindromes are [\"abcddcba\",\"dcbaabcd\",\"slls\",\"llssssll\"]."
+          "output": "[[0,1],[1,0],[2,4],[3,2]]",
+          "explanation": "The palindromes are [\"abcddcba\",\"dcbaabcd\",\"llssssll\",\"slls\"]."
         },
         {
           "input": "words = [\"bat\",\"tab\",\"cat\"]",
@@ -2348,10 +2348,10 @@
         "typescript": "function palindromePairs(words: string[]): number[][] {\n  // Optimal O(N * L^2) where N is words count, L is maximum word length / O(N * L)\n  throw new Error(\"Not implemented\");\n}\n",
         "python": "class Solution:\n    def palindromePairs(self, words: list[str]) -> number[][]:\n        # Optimal O(N * L^2) where N is words count, L is maximum word length\n        pass\n"
       },
-      "optimalSolution": "function palindromePairs(words) {\n  const isPal = (s, l, r) => {\n    while (l < r) {\n      if (s[l++] !== s[r--]) return false;\n    }\n    return true;\n  };\n  const wordMap = new Map();\n  for (let i = 0; i < words.length; i++) wordMap.set(words[i], i);\n  const res = [];\n  for (let i = 0; i < words.length; i++) {\n    const w = words[i];\n    const m = w.length;\n    for (let j = 0; j <= m; j++) {\n      if (isPal(w, j, m - 1)) {\n        const revPrefix = w.substring(0, j).split('').reverse().join('');\n        const k = wordMap.get(revPrefix);\n        if (k !== undefined && k !== i) res.push([i, k]);\n      }\n      if (j > 0 && isPal(w, 0, j - 1)) {\n        const revSuffix = w.substring(j).split('').reverse().join('');\n        const k = wordMap.get(revSuffix);\n        if (k !== undefined && k !== i) res.push([k, i]);\n      }\n    }\n  }\n  return res;\n}",
+      "optimalSolution": "function palindromePairs(words) {\n  const isPal = (s, l, r) => {\n    while (l < r) {\n      if (s[l++] !== s[r--]) return false;\n    }\n    return true;\n  };\n  const wordMap = new Map();\n  for (let i = 0; i < words.length; i++) wordMap.set(words[i], i);\n  const res = [];\n  for (let i = 0; i < words.length; i++) {\n    const w = words[i];\n    const m = w.length;\n    for (let j = 0; j <= m; j++) {\n      if (isPal(w, j, m - 1)) {\n        const revPrefix = w.substring(0, j).split('').reverse().join('');\n        const k = wordMap.get(revPrefix);\n        if (k !== undefined && k !== i) res.push([i, k]);\n      }\n      if (j > 0 && isPal(w, 0, j - 1)) {\n        const revSuffix = w.substring(j).split('').reverse().join('');\n        const k = wordMap.get(revSuffix);\n        if (k !== undefined && k !== i) res.push([k, i]);\n      }\n    }\n  }\n  return res.sort((a, b) => a[0] - b[0] || a[1] - b[1]);\n}",
       "optimalTimeComplexity": "O(N * L^2) where N is words count, L is maximum word length",
       "optimalSpaceComplexity": "O(N * L)",
-      "suboptimalSolution": "function palindromePairs(words) {\n  const res = [];\n  const isPal = (s) => {\n    let l = 0, r = s.length - 1;\n    while (l < r) if (s[l++] !== s[r--]) return false;\n    return true;\n  };\n  for (let i = 0; i < words.length; i++) {\n    for (let j = 0; j < words.length; j++) {\n      if (i !== j && isPal(words[i] + words[j])) res.push([i, j]);\n    }\n  }\n  return res;\n}",
+      "suboptimalSolution": "function palindromePairs(words) {\n  const res = [];\n  const isPal = (s) => {\n    let l = 0, r = s.length - 1;\n    while (l < r) if (s[l++] !== s[r--]) return false;\n    return true;\n  };\n  for (let i = 0; i < words.length; i++) {\n    for (let j = 0; j < words.length; j++) {\n      if (i !== j && isPal(words[i] + words[j])) res.push([i, j]);\n    }\n  }\n  return res.sort((a, b) => a[0] - b[0] || a[1] - b[1]);\n}",
       "suboptimalTimeComplexity": "O(N^2 * L)",
       "suboptimalSpaceComplexity": "O(1)",
       "commonMistakes": [
@@ -2367,7 +2367,7 @@
       "testCases": [
         {
           "input": "[[\"abcd\",\"dcba\",\"lls\",\"s\",\"sssll\"]]",
-          "expectedOutput": "[[0,1],[1,0],[3,2],[2,4]]",
+          "expectedOutput": "[[0,1],[1,0],[2,4],[3,2]]",
           "isHidden": false,
           "tier": "FUNCTIONAL",
           "explanation": "Standard functional test case 1"
@@ -2416,14 +2416,14 @@
         },
         {
           "input": "[[\"a\",\"aa\",\"aaa\"]]",
-          "expectedOutput": "[[1,0],[0,1],[2,0],[1,2],[2,1],[0,2]]",
+          "expectedOutput": "[[0,1],[0,2],[1,0],[1,2],[2,0],[2,1]]",
           "isHidden": true,
           "tier": "ADVERSARIAL",
           "explanation": "Adversarial / counter-example test 1"
         },
         {
           "input": "[[\"ab\",\"ba\",\"abc\",\"cba\"]]",
-          "expectedOutput": "[[0,1],[1,0],[2,1],[2,3],[0,3],[3,2]]",
+          "expectedOutput": "[[0,1],[0,3],[1,0],[2,1],[2,3],[3,2]]",
           "isHidden": true,
           "tier": "ADVERSARIAL",
           "explanation": "Adversarial / counter-example test 2"
@@ -2497,8 +2497,8 @@
       "optimalSolution": "function findAllConcatenatedWordsInADict(words) {\n  words.sort((a, b) => a.length - b.length);\n  const wordSet = new Set();\n  const res = [];\n  const canForm = (word) => {\n    if (wordSet.size === 0) return false;\n    const dp = new Array(word.length + 1).fill(false);\n    dp[0] = true;\n    for (let i = 1; i <= word.length; i++) {\n      for (let j = 0; j < i; j++) {\n        if (dp[j] && wordSet.has(word.substring(j, i))) {\n          dp[i] = true;\n          break;\n        }\n      }\n    }\n    return dp[word.length];\n  };\n  for (const w of words) {\n    if (w.length > 0 && canForm(w)) {\n      res.push(w);\n    }\n    wordSet.add(w);\n  }\n  return res;\n}",
       "optimalTimeComplexity": "O(N log N + N * L^2) where L is max word length",
       "optimalSpaceComplexity": "O(N * L)",
-      "suboptimalSolution": "function findAllConcatenatedWordsInADict(words) {\n  const wordSet = new Set(words);\n  const res = [];\n  const dfs = (word, count) => {\n    if (word === '' && count >= 2) return true;\n    for (let i = 1; i <= word.length; i++) {\n      const prefix = word.substring(0, i);\n      if (wordSet.has(prefix) && dfs(word.substring(i), count + 1)) return true;\n    }\n    return false;\n  };\n  for (const w of words) {\n    if (dfs(w, 0)) res.push(w);\n  }\n  return res;\n}",
-      "suboptimalTimeComplexity": "O(N * 2^L) without memoization",
+      "suboptimalSolution": "function findAllConcatenatedWordsInADict(words) {\n  words.sort((a, b) => a.length - b.length);\n  const wordSet = new Set();\n  const res = [];\n  const dfs = (word) => {\n    if (wordSet.has(word)) return true;\n    for (let i = 1; i < word.length; i++) {\n      const prefix = word.substring(0, i);\n      if (wordSet.has(prefix) && dfs(word.substring(i))) return true;\n    }\n    return false;\n  };\n  for (const w of words) {\n    if (w.length > 0 && dfs(w)) res.push(w);\n    wordSet.add(w);\n  }\n  return res;\n}",
+      "suboptimalTimeComplexity": "O(N log N + N * 2^L) without memoization",
       "suboptimalSpaceComplexity": "O(N * L)",
       "commonMistakes": [
         "Allowing a word to be formed by itself (must be formed by AT LEAST TWO words, which is handled cleanly by sorting by length and checking against previous smaller words).",

@@ -1,0 +1,1178 @@
+# DSA Arena — Complete Product Upgrade, Revision Engine, Coding Workspace & Progress Analytics
+
+## Role
+
+Act as a Principal Software Architect, Senior Full-Stack Engineer, DSA Expert, Competitive Programming Judge Engineer, UX Engineer, Database Architect, and Quality Assurance Lead.
+
+You are working on my existing product, **DSA Arena**, a LeetCode-style Data Structures and Algorithms practice platform with a question bank of approximately 500 problems across 23 levels.
+
+Your task is to inspect the existing repository, understand its architecture, and implement the product improvements specified below. This is an existing application, not a request to create a separate demo or rebuild everything from scratch.
+
+**Do not stop after analyzing the codebase or generating a plan.** Inspect, plan, implement, test, fix verified defects, and document the actual results.
+
+---
+
+# PHASE 0 — INSPECT THE EXISTING APPLICATION FIRST
+
+Before modifying any files:
+
+1. Inspect the complete repository structure, including frontend, backend, API routes, database schema, question bank, execution engine, authentication, styling, and existing tests.
+2. Identify the existing technology stack and versions. Do not assume a framework, database, ORM, editor, or state-management library without checking.
+3. Identify the current question-card page, question-detail page, code editor, test runner, submission logic, progress tracking, and existing revision-related code.
+4. Inspect how all 500 questions are represented and loaded. Preserve their IDs, levels, metadata, statements, examples, constraints, solutions, and test cases.
+5. Read the existing DSA Arena audit report and machine-readable results, if they exist:
+   - `docs/DSA_ARENA_AUDIT_REPORT.md`
+   - `docs/dsa-arena-audit-results.json`
+6. Check whether the reported 500-question audit and its remediation results can be reproduced. Do not assume a previous report proves the current repository is correct.
+7. Identify existing reusable components, APIs, utilities, database tables, and tests.
+8. Inspect the existing deployment, authentication, and sandbox-security model before designing persistence or execution changes.
+9. Create a concise implementation plan with dependencies, risks, files likely to change, and verification commands.
+
+Do not replace functioning components merely because a different library is available. Reuse the existing architecture wherever practical.
+
+If a necessary dependency is missing, select a compatible option based on the actual stack and explain the decision.
+
+---
+
+# PHASE 1 — PRODUCT OBJECTIVES
+
+Implement the following interconnected features:
+
+1. Personal progress dashboard with yearly and monthly visualizations.
+2. Chronological practice activity history.
+3. A complete adaptive DSA revision engine.
+4. A Revision Center with due and overdue questions.
+5. Three practice methods: IDE, By Hand, and In Mind.
+6. A LeetCode-style split-pane problem-solving workspace.
+7. A resizable editor and collapsible navigation sidebar.
+8. Syntax highlighting and professional code-editor behavior.
+9. Properly formatted problem statements.
+10. Notes, autosaved drafts, named draft checkpoints, and accepted-solution snapshots.
+11. Separate Run Tests and Submit workflows.
+12. Local-first persistence using browser storage, designed for future cloud synchronization.
+13. Reliable integration with the existing question bank and protected code-execution engine.
+14. Comprehensive tests, documentation, and a verified implementation report.
+
+The experience should feel like a polished developer practice platform, not a basic question list with an editor below it.
+
+---
+
+# PHASE 2 — PERSONAL PROGRESS DASHBOARD
+
+## 2.1 Yearly contribution heatmap
+
+Implement a GitHub-style contribution calendar similar to the yearly activity visualization shown in the supplied reference images.
+
+Requirements:
+
+- Display a full calendar year, organized into weeks and weekdays.
+- Provide year selection and navigation between years.
+- Use activity intensity to represent the selected metric.
+- Show a tooltip when a day is hovered or selected.
+- Include a legend explaining activity intensity.
+- Clearly handle days with zero activity.
+- Show accurate local calendar dates.
+- Support a responsive layout without destroying the calendar structure on smaller screens.
+
+The daily tooltip should show, where available:
+
+- Number of practice sessions.
+- Number of unique problems solved.
+- Number of completed revisions.
+- Number of accepted submissions.
+
+Do not count opening a question or typing a draft as a completed practice session.
+
+## 2.2 Monthly activity chart
+
+Implement a monthly chart inspired by the GeeksforGeeks-style chart in the supplied reference images.
+
+Requirements:
+
+- Month and year selector.
+- Daily activity bars.
+- Clear dates and values.
+- Tooltips with exact counts.
+- Appropriate handling of days with no activity.
+- Responsive layout.
+- Consistent colors and metric definitions across the dashboard.
+
+Provide a metric selector so users can switch between:
+
+- Practice sessions.
+- Unique problems solved.
+- Revisions completed.
+- Accepted submissions.
+
+Use a charting library already present in the project if suitable. Otherwise, choose a compatible library and integrate it cleanly.
+
+## 2.3 Chronological activity history
+
+Below the charts, provide a chronological activity list similar to the activity history shown in the reference images.
+
+Each entry should include:
+
+- Question title and stable question ID.
+- Date and time.
+- Practice method: IDE, By Hand, or In Mind.
+- Event type: first practice, revision, successful solve, or accepted submission, as applicable.
+- Result or recall rating, where available.
+- Link to reopen the question.
+
+Provide filters for:
+
+- Date range.
+- Practice method.
+- Difficulty.
+- Event type.
+- Revision status.
+
+Sort newest first by default, and support pagination or incremental loading.
+
+Do not invent historical events for activity that was never recorded.
+
+## 2.4 Progress metric definitions
+
+Use explicit and consistent definitions:
+
+- **Unique problems solved:** Distinct questions with a qualifying successful solve.
+- **Practice sessions:** All qualifying recorded practice events.
+- **Accepted submissions:** Successfully accepted submitted solutions.
+- **Revisions completed:** Reviews that were actually completed and recorded.
+- **Mastered questions:** Questions that satisfy the mastery policy.
+- **Practice-method counts:** Events recorded for IDE, By Hand, and In Mind.
+- **Current streak:** Consecutive local calendar days containing qualifying activity.
+
+Repeatedly practicing one question must not increase the unique-problems-solved count.
+
+The yearly heatmap should default to practice activity and allow switching to unique problems solved. The monthly chart must respect the selected metric.
+
+Use real stored data. Do not use fabricated activity to populate the dashboard.
+
+---
+
+# PHASE 3 — PRACTICE METHODS AND QUESTION PROGRESS
+
+Every question must support three existing or planned practice methods.
+
+## 3.1 Solved in IDE
+
+The user writes and runs code in the editor.
+
+Record:
+
+- Question ID.
+- Practice timestamp.
+- Programming language.
+- Whether the user attempted the problem.
+- Quick-test result, if run.
+- Submission result, if submitted.
+- Whether hints or the reference solution were revealed.
+- Recall rating, when recorded.
+
+## 3.2 Solved By Hand
+
+The user solves the question using handwritten reasoning, pseudocode, or notes prepared outside the code editor.
+
+Record:
+
+- Question ID.
+- Timestamp.
+- Method.
+- User-reported outcome.
+- Whether the approach and pseudocode were correct.
+- Recall rating.
+- Whether the reference solution was revealed.
+
+Do not pretend that the platform independently verified handwritten work.
+
+## 3.3 Solved In Mind
+
+The user mentally reconstructs the solution without writing code.
+
+Record:
+
+- Question ID.
+- Timestamp.
+- Method.
+- Self-reported recall rating.
+- Whether the user could explain the algorithm.
+- Whether time and space complexity were recalled.
+- Whether important edge cases were recalled.
+- Whether the reference solution was revealed.
+
+Do not require code execution for this method.
+
+## 3.4 Shared question-level revision schedule
+
+All three methods must contribute to one shared question-level revision schedule.
+
+Do not create separate competing revision calendars for IDE, By Hand, and In Mind.
+
+Maintain separate practice histories for each method, but calculate one overall next-review date per question.
+
+Record practice completion, correctness, recall rating, and mastery as separate concepts. A click on a practice-method button must not automatically imply mastery.
+
+Allow users to correct an accidental practice-event entry.
+
+---
+
+# PHASE 4 — ADAPTIVE DSA REVISION ENGINE
+
+This is a core feature and must be implemented as a testable scheduling module independent of the UI.
+
+## 4.1 Scheduling objectives
+
+The revision engine should:
+
+- Schedule reviews based on recall, correctness, hint usage, solution exposure, and previous review history.
+- Preserve all historical review events.
+- Calculate a deterministic next-review date.
+- Support future tuning of the scheduling policy without rewriting the interface.
+- Work with local-first persistence.
+- Remain extensible for a future System Design revision engine and other technical learning tracks.
+
+Do not implement the scheduler as a collection of unrelated UI conditions.
+
+## 4.2 Initial scheduling policy
+
+Use these initial intervals as configurable defaults, not hardcoded rules scattered across components:
+
+| Outcome               | Initial next-review interval |
+| --------------------- | ---------------------------- |
+| Again / failed recall | Approximately 1 day          |
+| Difficult             | Approximately 2 days         |
+| Good                  | Approximately 4 days         |
+| Easy                  | Approximately 7 days         |
+
+These are starting intervals. Subsequent intervals must adapt to prior performance.
+
+Examples:
+
+- Repeated Good and Easy reviews should gradually extend the interval.
+- A failed review resets the next interval to approximately one day.
+- A difficult review should result in a smaller increase than a Good or Easy review.
+- Revealing the complete solution should reduce the confidence attributed to independent recall.
+- Snoozing must not count as a successful review.
+- Opening a question without attempting it must not count as a completed review.
+
+Make interval limits, multipliers, long-interval thresholds, and mastery settings configurable in one place.
+
+## 4.3 Recall ratings
+
+Provide four ratings after a review:
+
+- **Again:** Could not recall the approach.
+- **Difficult:** Recalled it with substantial effort.
+- **Good:** Recalled it successfully with minor hesitation.
+- **Easy:** Recalled it confidently without needing help.
+
+The user should see a brief explanation of the rating meanings.
+
+Good and Easy may count toward mastery when the session also satisfies the success criteria for its practice method.
+
+## 4.4 Review-success rules by method
+
+**IDE**
+
+- Require an actual attempt before rating the review.
+- Record correctness based on execution results where available.
+- Record hints and reference-solution exposure.
+- Do not treat an accepted submission as proof of independent recall if the reference solution was viewed first.
+
+**By Hand**
+
+- Allow the user to record whether the approach and pseudocode were correct.
+- Record recall rating and solution exposure.
+- Clearly identify the outcome as self-reported rather than automatically verified.
+
+**In Mind**
+
+- Allow self-rating without code execution.
+- Record whether the user could recall the algorithm, complexity, and important edge cases.
+- Clearly identify the outcome as self-reported.
+
+All three methods create practice/revision events and update the shared question-level schedule according to the same scheduling policy, while retaining method-specific evidence.
+
+## 4.5 Solution exposure and partial credit
+
+If the user reveals the reference solution:
+
+- Record the exposure event and timestamp.
+- Do not count merely reading the solution as independent recall.
+- Allow a subsequent independent attempt to earn partial credit under a configurable policy.
+- Preserve the fact that the earlier session was assisted.
+- Do not erase prior successful reviews.
+
+For an independent follow-up after solution exposure, record whether the user attempted the problem again without reopening the solution.
+
+Implement this behavior explicitly and test it. Do not award full mastery credit automatically because a solution was viewed and then submitted successfully.
+
+## 4.6 Mastery policy
+
+A question becomes Mastered only after:
+
+1. Five qualifying successful reviews.
+2. Good or Easy recall ratings on those qualifying reviews.
+3. At least one successful review after a configurable long interval.
+4. Satisfaction of the relevant method-specific success criteria.
+5. No reliance on a revealed solution for the review being counted as independent.
+
+Keep mastery configuration centralized.
+
+A failed later review may move a mastered question back into an active review state. Do not delete its previous successful history.
+
+Keep submission acceptance and revision mastery separate. An accepted solution does not automatically make a question Mastered.
+
+## 4.7 Revision state
+
+Support clear states such as:
+
+- New.
+- Learning.
+- Reviewing.
+- Mastered.
+- Due.
+- Overdue.
+
+Implement these as a consistent state model. Avoid contradictory combinations of statuses.
+
+Due and overdue should preferably be derived from the next-review timestamp rather than stored as competing permanent states.
+
+## 4.8 Date handling
+
+- Store timestamps consistently.
+- Use the user's local calendar for displaying due dates and activity.
+- Handle time zones, daylight-saving changes where applicable, and date boundaries safely.
+- Do not compare formatted date strings to calculate intervals.
+- Make the scheduler deterministic and testable using an injectable current time.
+
+---
+
+# PHASE 5 — REVISION CENTER
+
+Build a dedicated Revision Center accessible from the application navigation.
+
+## 5.1 Default queue
+
+The default queue should contain:
+
+1. Overdue questions, most overdue first.
+2. Questions due today.
+3. Questions with failed or low-confidence prior reviews prioritized within comparable due status.
+
+Upcoming reviews should be hidden from the default queue. Provide an explicit option to view upcoming questions.
+
+## 5.2 Daily workload
+
+Provide an optional daily review target, such as 20 questions.
+
+The target is a recommendation, not a hard limit.
+
+- Prioritize overdue questions.
+- Continue showing remaining due questions.
+- Allow the user to continue beyond the target.
+- Do not silently move due dates just because the target has been reached.
+- Show how many reviews are completed and how many remain due.
+
+## 5.3 Reminders
+
+Use:
+
+- A sidebar badge showing the count of overdue and due-today questions.
+- A gentle, dismissible in-app reminder when appropriate.
+- A direct link to the Revision Center.
+
+Avoid intrusive modal popups on every page load or navigation.
+
+Do not repeatedly show the same reminder in a single session without a meaningful reason.
+
+## 5.4 Review-session workflow
+
+When a user starts a revision:
+
+1. Open the question in revision mode.
+2. Keep the saved solution hidden.
+3. Allow the user to attempt the question independently.
+4. Allow the user to select IDE, By Hand, or In Mind.
+5. Record the outcome, recall rating, hints, and solution exposure.
+6. Calculate the next review date.
+7. Update the question's mastery status if the criteria are satisfied.
+8. Show a brief completion summary.
+9. Offer the next prioritized due question.
+
+Provide separate actions for:
+
+- Finish Review.
+- Snooze.
+- Skip for Now.
+
+Snoozing and skipping must not count as successful reviews or mastery progress.
+
+## 5.5 Revision history
+
+Show the question's prior review history, ratings, methods, solution exposure, and scheduling changes.
+
+The user should be able to understand why the question is due again.
+
+---
+
+# PHASE 6 — LEETCODE-STYLE PROBLEM-SOLVING WORKSPACE
+
+Replace the current long, vertically stacked question/editor layout with a professional split-pane workspace.
+
+Inspect the existing interface first and adapt it rather than replacing unrelated navigation or application pages.
+
+## 6.1 Desktop layout
+
+Use two main panels:
+
+**Left panel — Problem workspace**
+
+Tabs:
+
+- Description.
+- Notes.
+- Submissions.
+
+Include a Hints button in the problem panel.
+
+**Right panel — Coding workspace**
+
+Include:
+
+- Programming-language selector.
+- Syntax-highlighted editor.
+- Run Tests button.
+- Submit button.
+- Execution results panel.
+- Save status.
+- Optional draft-checkpoint controls.
+
+The problem and editor panels should remain visible together on desktop.
+
+## 6.2 Resizable divider
+
+The divider between the left and right panels must be draggable.
+
+Requirements:
+
+- Dragging changes the relative widths of both panels.
+- Set sensible minimum widths to prevent either panel from becoming unusable.
+- Prevent the panels from overlapping.
+- Allow the user to restore the default split.
+- Preserve the preferred layout locally.
+- Ensure the divider works with the existing framework and accessibility conventions.
+
+Do not implement a decorative divider that cannot actually be dragged.
+
+## 6.3 Collapsible sidebar
+
+The main application sidebar must be collapsible.
+
+Requirements:
+
+- Provide an accessible toggle.
+- Preserve the selected question when collapsing or expanding.
+- Give the workspace more room when the sidebar is hidden.
+- Persist the preference locally.
+- Ensure the content layout recalculates correctly.
+
+## 6.4 Independent scrolling
+
+The question panel, editor, and execution-results panel should scroll independently.
+
+Scrolling through a long problem statement must not force the editor to move down the page.
+
+The editor must remain accessible without requiring the user to scroll through the entire question.
+
+## 6.5 Responsive behavior
+
+On smaller screens:
+
+- Switch to an appropriate tabbed or stacked navigation between Problem and Code.
+- Preserve drafts and notes while switching.
+- Prevent horizontal overflow.
+- Keep Run Tests and Submit accessible.
+- Ensure the interface remains usable on tablet-sized screens.
+
+---
+
+# PHASE 7 — PROBLEM STATEMENT FORMATTING
+
+Problem statements currently appear as continuous text without proper paragraph breaks. Correct this throughout the question experience.
+
+Requirements:
+
+1. Inspect the source format of the existing problem statements.
+2. Render valid Markdown where appropriate.
+3. Support paragraphs, headings, numbered lists, bullet lists, inline code, code blocks, mathematical notation where available, examples, and constraints.
+4. Give examples and constraints clear visual separation.
+5. Preserve meaningful newlines and list structure.
+6. Do not indiscriminately split sentences based on punctuation.
+7. Sanitize rendered content appropriately.
+8. Preserve the underlying problem data and IDs.
+9. Add regression tests for long descriptions and multi-example questions.
+
+If the source data contains no formatting, improve the affected content through a controlled migration or source-format correction. Do not fabricate new problem requirements or silently change algorithmic semantics.
+
+---
+
+# PHASE 8 — CODE EDITOR EXPERIENCE
+
+The current editor displays code as plain white text. Replace or upgrade it to provide professional syntax highlighting.
+
+## 8.1 Editor technology
+
+Inspect the existing editor integration first.
+
+If a suitable editor is not already present, prefer Monaco Editor or another mature editor compatible with the existing stack.
+
+Support the programming languages that DSA Arena already officially supports.
+
+Do not add language support that the backend execution engine cannot actually run.
+
+## 8.2 Required editor behavior
+
+- Syntax highlighting.
+- Colored brackets and matching-bracket highlighting.
+- Automatic indentation.
+- Line numbers.
+- Code folding where supported.
+- Language-specific syntax and diagnostics where available.
+- Readable error markers.
+- Proper scrolling.
+- Keyboard shortcuts.
+- Copy and paste.
+- Undo and redo.
+- Theme compatibility with the application's existing design.
+- Restoring each question's latest draft and selected language.
+
+Use a consistent theme rather than hardcoding colors throughout editor components.
+
+## 8.3 Code persistence
+
+Maintain separate records for:
+
+- Latest editable draft.
+- Named draft checkpoints.
+- Accepted submission snapshots.
+
+Typing new code must not overwrite the accepted solution.
+
+---
+
+# PHASE 9 — HINTS AND SOLUTION VISIBILITY
+
+## 9.1 Hints
+
+Hints must not automatically appear in the main problem content.
+
+Provide a Hints button on the problem side.
+
+Only open the hints panel when the user clicks the button.
+
+If the question has multiple hints, reveal them progressively where appropriate.
+
+Record hint exposure for revision scheduling.
+
+Do not count merely opening the hint panel as a successful review.
+
+## 9.2 Saved solution visibility
+
+During revision, the previous solution must remain hidden until:
+
+- The user has attempted the question; or
+- The user explicitly requests to reveal it.
+
+Display a warning before revealing the full solution.
+
+Record the reveal event and its timestamp.
+
+Do not permanently block users from viewing solutions. This is a learning aid, not an access restriction.
+
+Ensure the same behavior applies consistently to optimal and alternative solutions if both are exposed by the product.
+
+---
+
+# PHASE 10 — NOTES AND DRAFT CHECKPOINTS
+
+## 10.1 Notes tab
+
+Add a Notes tab beside Description and Submissions.
+
+Users should be able to write and edit personal notes for each question.
+
+Suggested note content:
+
+- Core idea.
+- Algorithm or pattern.
+- Why the approach works.
+- Time complexity.
+- Space complexity.
+- Edge cases.
+- Common mistakes.
+- Alternative approaches.
+- Interview explanation.
+- Personal revision reminders.
+
+These are suggested prompts, not mandatory fields.
+
+Use an editor appropriate for the existing stack. Support readable formatting if feasible.
+
+Autosave notes independently from code drafts.
+
+## 10.2 Named draft checkpoints
+
+Keep the latest draft automatically and allow the user to create named checkpoints.
+
+Examples:
+
+- First approach.
+- Brute-force solution.
+- Optimized solution.
+- Interview-ready solution.
+
+Each checkpoint should store:
+
+- Stable checkpoint ID.
+- Question ID.
+- Programming language.
+- Name.
+- Code snapshot.
+- Creation timestamp.
+- Optional user description.
+
+Restoring a checkpoint must request confirmation and preserve the current draft before replacement.
+
+Do not create a full Git-style version history unless the existing application already supports it.
+
+## 10.3 Accepted snapshots
+
+When a solution is accepted, save an immutable accepted-code snapshot containing:
+
+- Question ID.
+- Language.
+- Exact submitted source code.
+- Acceptance timestamp.
+- Relevant execution metrics.
+- Snapshot ID.
+
+The latest editable draft remains separate.
+
+---
+
+# PHASE 11 — LOCAL-FIRST PERSISTENCE AND FUTURE CLOUD SYNC
+
+The initial implementation should prioritize local browser storage, with a clean path toward cloud synchronization later.
+
+## 11.1 Storage strategy
+
+Use IndexedDB for structured records and larger drafts, unless the existing application already has a more appropriate local persistence abstraction.
+
+Do not rely exclusively on localStorage for large or frequently updated datasets.
+
+Persist locally:
+
+- Question progress.
+- Practice events.
+- Revision events.
+- Next-review state.
+- Drafts.
+- Notes.
+- Named checkpoints.
+- Accepted snapshots.
+- User interface preferences.
+- Optional daily review target.
+
+Keep all records associated with stable question IDs.
+
+## 11.2 Autosave
+
+- Autosave code after a short configurable typing debounce.
+- Autosave notes independently.
+- Show Saving, Saved, and Offline or Sync Pending states as appropriate.
+- Save before changing questions where practical.
+- Restore the most recent draft after refresh or reopening the question.
+- Do not depend solely on page-unload events.
+- Handle IndexedDB failures and quota errors gracefully.
+
+## 11.3 Data integrity
+
+Use stable record IDs, timestamps, schema versions, and explicit relationships between records.
+
+Avoid storing the same mutable state in multiple unrelated places.
+
+Use transactions where necessary to keep related local records consistent.
+
+Design the data model so that future cloud synchronization can be added without replacing the product's data architecture.
+
+## 11.4 Recovery and export
+
+Because browser data can be cleared or evicted:
+
+- Explain that local-only data is not a guaranteed backup.
+- Provide a way to export the user's personal progress, notes, and drafts.
+- Provide a safe import/recovery mechanism if feasible.
+- Validate imported data before accepting it.
+- Never overwrite existing user data silently during import.
+
+Do not add cloud sync in this phase unless the existing application already has a compatible backend and the change can be implemented without compromising the agreed local-first behavior.
+
+---
+
+# PHASE 12 — RUN TESTS AND SUBMIT
+
+These are separate workflows with different purposes.
+
+## 12.1 Run Tests
+
+When the user clicks Run Tests:
+
+- Execute the current editor contents, including unsaved edits.
+- Run approximately 3–4 visible sample and quick tests.
+- Prefer a mixture of visible examples and a few quick edge cases.
+- Show the result of each quick test.
+- Show expected and actual output where appropriate and safe.
+- Report syntax errors and runtime errors clearly.
+- Do not change the revision schedule automatically.
+- Do not create a submission-history entry.
+- Do not overwrite the current draft.
+- Keep execution within the protected runner's time and memory limits.
+
+If a problem has fewer valid visible tests, do not invent invalid inputs just to reach four cases.
+
+## 12.2 Submit
+
+When the user clicks Submit:
+
+- Execute the current editor contents, including unsaved edits.
+- Run the complete required correctness test suite.
+- Include hidden and public test cases.
+- Use the existing secure execution engine and its language adapters.
+- Apply time and memory limits.
+- Return the final verdict and useful execution metrics.
+- Display public test details and a safe summary of hidden-test results.
+- Never expose hidden inputs, expected outputs, or private test definitions to the browser.
+
+Distinguish correctness acceptance from performance results. A solution can pass correctness checks while receiving a separate performance warning if the platform's verdict policy allows that distinction.
+
+## 12.3 Submission persistence policy
+
+Use the following agreed behavior:
+
+**Accepted submission**
+
+- Save an immutable accepted-code snapshot.
+- Preserve the current editable draft.
+- Show the accepted verdict and relevant metrics.
+
+**Failed submission**
+
+- Show the failure and useful diagnostics.
+- Do not create a permanent user-visible submission-history entry.
+- Do not overwrite the current draft.
+- Allow the user to edit and retry.
+
+The execution service may use short-lived internal diagnostics necessary for execution, debugging, and security. These must not silently become permanent user submission-history records.
+
+Keep submission behavior separate from practice-event tracking. If a user records a practice session, that event can still be stored independently of whether a submission was accepted.
+
+## 12.4 Hidden test security
+
+Hidden test inputs and expected outputs must remain server-side.
+
+Do not embed hidden test suites in client bundles, public APIs, or browser-accessible JSON.
+
+Do not trust client-supplied verdicts.
+
+Validate submissions on the trusted execution side.
+
+Do not weaken the sandbox, resource limits, or existing execution security to make the editor easier to implement.
+
+---
+
+# PHASE 13 — TEST CASE QUALITY FOR THE 500-QUESTION BANK
+
+The existing question bank contains approximately 500 problems. Preserve the existing questions and improve test coverage where the evidence indicates it is needed.
+
+## 13.1 Test tiers
+
+Maintain distinct tiers for:
+
+1. Functional and example tests.
+2. Boundary tests.
+3. Adversarial tests.
+4. Stress and performance tests.
+
+Use quick visible tests for Run Tests and the full required suite for Submit.
+
+## 13.2 Test volume and quality
+
+Aim for approximately 100–300 meaningful test cases per problem where practical, with higher coverage for complex problems.
+
+Do not blindly generate hundreds of duplicate tests.
+
+Test cases must be valid under the problem constraints.
+
+For each problem, consider:
+
+- Minimal valid inputs.
+- Maximum permitted input sizes.
+- Duplicate values.
+- Empty inputs where allowed.
+- Single-element structures where allowed.
+- Negative values where permitted.
+- Boundary values.
+- Disconnected graphs, cycles, and isolated nodes where relevant.
+- Tree shape variations.
+- Dynamic-programming edge cases.
+- Greedy-algorithm counterexamples.
+- Integer overflow or numeric limits where relevant.
+- Performance bottlenecks.
+- Output ordering and multiple valid answers.
+
+Use problem-specific validation rather than applying irrelevant generic edge cases.
+
+## 13.3 Independent validation
+
+Do not blindly trust the reference solution or oracle.
+
+Where practical:
+
+- Compare optimal and alternative implementations.
+- Use an independent brute-force oracle for small randomized inputs.
+- Check mathematical and algorithmic invariants.
+- Validate output semantics, not only string equality.
+- Account for problems where multiple outputs are valid.
+- Ensure the test runner handles each problem's input/output format correctly.
+
+The final report must distinguish actual executed tests from tests merely generated or planned.
+
+---
+
+# PHASE 14 — FUTURE-PROOF REVISION ARCHITECTURE
+
+DSA is the first revision engine, but System Design and AI learning tracks may be added later.
+
+Design the architecture around a shared scheduling infrastructure with track-specific evaluation rules.
+
+Shared infrastructure should handle:
+
+- Review scheduling.
+- Due dates.
+- Event history.
+- Recall ratings where appropriate.
+- Mastery policy configuration.
+- Reminder queues.
+- Persistence.
+- Progress analytics.
+
+DSA-specific evaluation should handle:
+
+- Algorithm recall.
+- Correctness.
+- Time and space complexity.
+- Edge cases.
+- Hint usage.
+- Solution exposure.
+- Coding performance.
+
+A future System Design engine can use different evaluation criteria such as requirements gathering, architecture, trade-offs, reliability, and scalability.
+
+Do not implement a complete System Design engine now. Only ensure the shared architecture will support it without incompatible data structures.
+
+---
+
+# PHASE 15 — USER INTERFACE AND DESIGN QUALITY
+
+Preserve the existing DSA Arena brand and design system where possible.
+
+The final interface should feel cohesive and professional.
+
+Requirements:
+
+- Consistent spacing, typography, and colors.
+- Clear hierarchy for headings and question metadata.
+- Responsive layouts.
+- Accessible buttons and controls.
+- Useful empty states.
+- Loading and error states.
+- Keyboard accessibility.
+- Tooltips for unfamiliar controls.
+- No decorative buttons without working behavior.
+- No fake progress metrics.
+- No dead-end navigation.
+- No unnecessary modals.
+- No horizontal overflow in the main workspace.
+- Consistent dark/light appearance if the application already supports both.
+
+Keep the visual treatment of the heatmap, charts, question cards, Revision Center, and editor consistent with the existing design system.
+
+Do not use static mockups as substitutes for working features.
+
+---
+
+# PHASE 16 — DATA MODEL AND MIGRATION REQUIREMENTS
+
+Inspect the existing schema before deciding whether to add, extend, or reuse records.
+
+The conceptual data model should support:
+
+- QuestionProgress.
+- PracticeEvent.
+- RevisionEvent.
+- CodeDraft.
+- DraftCheckpoint.
+- QuestionNote.
+- AcceptedSubmissionSnapshot.
+- UserPreferences.
+- Optional ReviewTarget configuration.
+
+The names are conceptual. Follow the existing codebase's naming conventions.
+
+If the application already has authentication or a database, preserve its ownership and access-control model.
+
+Do not create duplicate question records or migrate the 500-question bank unnecessarily.
+
+If a migration is required:
+
+1. Create a reversible or safely recoverable migration where possible.
+2. Preserve existing user data.
+3. Avoid destructive changes without explicit justification.
+4. Validate existing records against the new model.
+5. Test migration behavior on a safe development database.
+6. Document backup and rollback instructions.
+
+If the initial feature phase is local-only, do not introduce unnecessary server tables simply to imitate a future cloud implementation.
+
+---
+
+# PHASE 17 — IMPLEMENTATION ORDER
+
+Implement in controlled phases. Each phase must build on the existing repository and be tested before proceeding.
+
+## Phase A — Repository and baseline verification
+
+- Inspect the architecture.
+- Verify the current question bank and audit artifacts.
+- Run existing tests and record the baseline.
+- Identify existing defects and regressions.
+- Confirm the actual editor and execution-engine capabilities.
+
+## Phase B — Revision data model and scheduler
+
+- Define event records and shared question progress.
+- Implement adaptive scheduling.
+- Implement recall ratings.
+- Implement solution-exposure handling.
+- Implement mastery rules.
+- Add deterministic unit tests.
+
+## Phase C — Revision Center
+
+- Due and overdue queues.
+- Optional daily target.
+- Upcoming reviews toggle.
+- Badge counts.
+- Gentle reminders.
+- Review workflow and history.
+
+## Phase D — Local-first persistence
+
+- IndexedDB storage.
+- Draft autosave.
+- Notes autosave.
+- Named checkpoints.
+- Accepted snapshots.
+- Recovery and export.
+
+## Phase E — Coding workspace
+
+- Split-pane layout.
+- Draggable divider.
+- Collapsible sidebar.
+- Independent scrolling.
+- Responsive behavior.
+- Editor syntax highlighting.
+- Language-specific drafts.
+
+## Phase F — Problem content and learning tools
+
+- Markdown formatting.
+- Description, Notes, and Submissions tabs.
+- Hint panel.
+- Solution reveal behavior.
+- Draft checkpoint controls.
+
+## Phase G — Execution workflows
+
+- Run Tests with 3–4 quick tests.
+- Submit with the full required test suite.
+- Safe hidden-test summaries.
+- Accepted snapshot persistence.
+- Failed-submission behavior.
+- Execution security and resource limits.
+
+## Phase H — Progress analytics
+
+- Yearly heatmap.
+- Monthly chart.
+- Metric selector.
+- Chronological history.
+- Filters and navigation.
+- Streak and progress calculations.
+
+## Phase I — Full verification
+
+- Unit tests.
+- Integration tests.
+- Browser-level tests where available.
+- Accessibility and responsive checks.
+- Persistence and recovery tests.
+- Revision-scheduler tests.
+- Execution-engine regression tests.
+- Question-bank regression checks.
+- Performance and security checks.
+
+Do not implement all phases in one giant, unverified code change. Keep each phase reviewable and fix regressions before continuing.
+
+---
+
+# PHASE 18 — REQUIRED ACCEPTANCE CRITERIA
+
+The implementation is not complete until the following behaviors have been verified.
+
+## Revision engine
+
+- [ ] IDE, By Hand, and In Mind create practice events.
+- [ ] All methods contribute to one question-level schedule.
+- [ ] IDE review requires an attempt.
+- [ ] Mental review allows self-rating.
+- [ ] Good and Easy can count toward mastery when success criteria are met.
+- [ ] Five qualifying successful reviews are required for mastery.
+- [ ] At least one qualifying review must follow a long interval.
+- [ ] Failed reviews reset the next interval to approximately one day.
+- [ ] Solution exposure is recorded.
+- [ ] Independent follow-up after solution exposure can receive partial credit.
+- [ ] Snooze and skip do not count as successful reviews.
+- [ ] Opening a question does not complete a review.
+- [ ] Overdue questions are prioritized.
+- [ ] Upcoming reviews are opt-in.
+- [ ] The daily target does not hide remaining due questions.
+
+## Progress analytics
+
+- [ ] Year selector works.
+- [ ] Monthly chart selector works.
+- [ ] Heatmap values match stored events.
+- [ ] Tooltips show correct dates and metrics.
+- [ ] Activity history is chronological.
+- [ ] Filters return correct results.
+- [ ] Repeated practice does not inflate unique-problem counts.
+- [ ] No fabricated activity appears.
+
+## Coding workspace
+
+- [ ] Question and editor are visible side by side on desktop.
+- [ ] Divider can be dragged.
+- [ ] Both panels have sensible minimum sizes.
+- [ ] Sidebar collapses and expands.
+- [ ] Panels scroll independently.
+- [ ] Responsive layout works on smaller screens.
+- [ ] Hints remain hidden until requested.
+- [ ] Problem statements preserve paragraphs and formatting.
+- [ ] Code syntax highlighting works.
+- [ ] Language-specific drafts restore correctly.
+
+## Persistence
+
+- [ ] Code autosaves.
+- [ ] Notes autosave.
+- [ ] Drafts survive refresh and question navigation.
+- [ ] Named checkpoints can be created and restored.
+- [ ] Restoring a checkpoint preserves the previous draft.
+- [ ] Accepted snapshots are immutable.
+- [ ] New edits do not overwrite accepted code.
+- [ ] Local storage errors are handled.
+- [ ] Export/recovery works if implemented.
+- [ ] No unintended data loss occurs during migration.
+
+## Execution
+
+- [ ] Run Tests executes the current editor contents.
+- [ ] Run Tests executes approximately 3–4 valid quick tests.
+- [ ] Run Tests does not create a submission-history entry.
+- [ ] Submit executes the full required correctness suite.
+- [ ] Hidden tests remain protected.
+- [ ] Failed submissions show diagnostics without creating a permanent submission-history entry.
+- [ ] Accepted submissions create a separate accepted snapshot.
+- [ ] Current drafts remain intact after both passing and failing executions.
+- [ ] Time and memory limits are enforced.
+- [ ] Existing execution functionality remains compatible with the full question bank.
+
+## Regression safety
+
+- [ ] All existing questions remain accessible.
+- [ ] Stable question IDs and level assignments are preserved.
+- [ ] Existing functionality is not silently removed.
+- [ ] Existing tests pass or any pre-existing failures are explicitly documented.
+- [ ] No feature is declared complete without evidence.
+
+---
+
+# PHASE 19 — DOCUMENTATION AND FINAL REPORT
+
+After implementation, produce an evidence-based report.
+
+Create or update documentation appropriate to the repository, including:
+
+1. Product architecture and component overview.
+2. Revision-engine scheduling policy.
+3. Mastery and solution-exposure rules.
+4. Data model and storage architecture.
+5. Autosave and recovery behavior.
+6. Coding workspace behavior.
+7. Run Tests versus Submit behavior.
+8. Test-case tiers and hidden-test security.
+9. New configuration options.
+10. Database or local-schema migrations.
+11. Test commands and actual results.
+12. Known limitations and future cloud-sync considerations.
+
+Include a concise implementation summary with:
+
+- Files created.
+- Files modified.
+- Existing components reused.
+- Dependencies added or changed.
+- Migrations performed.
+- Features implemented.
+- Tests executed.
+- Test results.
+- Known defects.
+- Remaining work.
+
+Clearly distinguish verified functionality from incomplete work.
+
+Do not fabricate test counts, pass rates, benchmark results, or coverage percentages.
+
+If a test cannot be run, state why and identify what remains unverified.
+
+Do not label the application fully production-ready merely because compilation succeeds.
+
+---
+
+# FINAL EXECUTION INSTRUCTIONS
+
+Start by inspecting the repository and establishing the current baseline.
+
+Then implement the features in the order specified above, adapting the plan to the actual codebase when necessary.
+
+Preserve existing functionality and the 500-question bank. Make small, reviewable changes, run the relevant tests after each phase, and fix regressions before proceeding.
+
+Prioritize correctness, maintainability, data integrity, user experience, and execution security over shortcuts.
+
+If you encounter a genuine architectural conflict or a destructive migration requirement, explain the conflict and choose the safest compatible approach. Do not silently discard existing data or invent an unsupported capability.
+
+**Do not stop at a plan. Implement the agreed features, run the available verification suite, and provide the final evidence-based report.**
